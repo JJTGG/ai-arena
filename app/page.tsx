@@ -1,5 +1,6 @@
 import ApiKeyManager from "./components/api-key-manager";
 import ChatInput from "./components/chat-input";
+import ProviderSelector from "./components/provider-selector";
 
 export default function Home() {
   return (
@@ -17,10 +18,15 @@ export default function Home() {
           </h1>
 
           <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-600">
-            Compare responses from different AI models in one conversation.
+            Compare responses from different AI models in the same
+            conversation.
           </p>
 
           <div className="mt-10 w-full max-w-2xl">
+            <ProviderSelector />
+          </div>
+
+          <div className="mt-6 w-full max-w-2xl">
             <ChatInput />
           </div>
         </div>
