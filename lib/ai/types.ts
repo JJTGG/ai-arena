@@ -19,3 +19,10 @@ export type AIResponse = {
   provider: AIProviderId;
   content: string;
 };
+
+export type ComparisonResult = {
+  id: string;
+  prompt: string;
+  responses: AIResponse[];
+  createdAt: string;
+};
