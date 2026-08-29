@@ -7,8 +7,6 @@ const MAX_LENGTH = 4000;
 export default function ChatInput() {
   const [message, setMessage] = useState("");
 
-  const remaining = MAX_LENGTH - message.length;
-
   function handleSubmit() {
     const trimmedMessage = message.trim();
 
