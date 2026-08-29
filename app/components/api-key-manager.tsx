@@ -46,17 +46,14 @@ export default function ApiKeyManager() {
   });
 
   useEffect(() => {
-    const storedKeys = {} as Record<Provider, string>;
     const storedStatus = {} as Record<Provider, boolean>;
 
     for (const provider of PROVIDERS) {
-      const key = localStorage.getItem(STORAGE_KEYS[provider.id]) ?? "";
-
-      storedKeys[provider.id] = key;
-      storedStatus[provider.id] = Boolean(key);
+      storedStatus[provider.id] = Boolean(
+        localStorage.getItem(STORAGE_KEYS[provider.id]),
+      );
     }
 
-    setKeys(storedKeys);
     setSaved(storedStatus);
   }, []);
 
@@ -64,15 +61,15 @@ export default function ApiKeyManager() {
     const key = keys[provider].trim();
 
     if (!key) {
-      localStorage.removeItem(STORAGE_KEYS[provider]);
-      setSaved((current) => ({
-        ...current,
-        [provider]: false,
-      }));
       return;
     }
 
     localStorage.setItem(STORAGE_KEYS[provider], key);
+
+    setKeys((current) => ({
+      ...current,
+      [provider]: "",
+    }));
 
     setSaved((current) => ({
       ...current,
@@ -102,8 +99,7 @@ export default function ApiKeyManager() {
         </h2>
 
         <p className="mt-1 text-sm leading-6 text-zinc-500">
-          Keys are stored only in this browser and are not sent to the AI
-          Arena server.
+          Your keys are stored only in this browser.
         </p>
       </div>
 
@@ -138,7 +134,11 @@ export default function ApiKeyManager() {
                     [provider.id]: event.target.value,
                   }))
                 }
-                placeholder={`Enter ${provider.name} API key`}
+                placeholder={
+                  saved[provider.id]
+                    ? "Key saved"
+                    : `Enter ${provider.name} API key`
+                }
                 className="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-400"
               />
 
@@ -165,8 +165,8 @@ export default function ApiKeyManager() {
       </div>
 
       <p className="mt-6 text-xs leading-5 text-zinc-400">
-        Anyone with access to this browser profile may be able to access
-        stored keys. Only use your own API keys.
+        Only use your own API keys. Anyone with access to this browser profile
+        may be able to access stored keys.
       </p>
     </section>
   );
