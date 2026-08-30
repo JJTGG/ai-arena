@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 type Provider = "openai" | "anthropic" | "google";
 
 const PROVIDERS: {
@@ -22,19 +20,22 @@ const PROVIDERS: {
   },
 ];
 
-export default function ProviderSelector() {
-  const [selected, setSelected] = useState<Provider[]>([
-    "openai",
-    "anthropic",
-    "google",
-  ]);
+type ProviderSelectorProps = {
+  selected: Provider[];
+  onChange: (providers: Provider[]) => void;
+};
 
+export default function ProviderSelector({
+  selected,
+  onChange,
+}: ProviderSelectorProps) {
   function toggleProvider(provider: Provider) {
-    setSelected((current) =>
-      current.includes(provider)
-        ? current.filter((item) => item !== provider)
-        : [...current, provider],
-    );
+    if (selected.includes(provider)) {
+      onChange(selected.filter((item) => item !== provider));
+      return;
+    }
+
+    onChange([...selected, provider]);
   }
 
   return (
