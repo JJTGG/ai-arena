@@ -1,7 +1,7 @@
 import type { AIProviderAdapter } from "../provider";
 import type { AIRequest, AIResponse } from "../types";
 
-const OPENAI_MODEL = "gpt-5";
+const OPENAI_MODEL = "gpt-5.6-luna";
 
 export const openAIAdapter: AIProviderAdapter = {
   provider: {
