@@ -5,14 +5,13 @@ import ApiKeyManager from "./components/api-key-manager";
 import ChatInput from "./components/chat-input";
 import ProviderSelector from "./components/provider-selector";
 
-type Provider = "openai" | "anthropic" | "google";
+type Provider = "openai" | "google";
 
 export default function Home() {
   const [selectedProviders, setSelectedProviders] = useState<Provider[]>([
-    "openai",
-    "anthropic",
-    "google",
-  ]);
+  "openai",
+  "google",
+]);
 
   return (
     <main className="min-h-screen">
