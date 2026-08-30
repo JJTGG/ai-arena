@@ -1,8 +1,19 @@
+"use client";
+
+import { useState } from "react";
 import ApiKeyManager from "./components/api-key-manager";
 import ChatInput from "./components/chat-input";
 import ProviderSelector from "./components/provider-selector";
 
+type Provider = "openai" | "anthropic" | "google";
+
 export default function Home() {
+  const [selectedProviders, setSelectedProviders] = useState<Provider[]>([
+    "openai",
+    "anthropic",
+    "google",
+  ]);
+
   return (
     <main className="min-h-screen">
       <section className="mx-auto flex min-h-screen max-w-6xl flex-col items-center px-6 py-16">
@@ -23,7 +34,10 @@ export default function Home() {
           </p>
 
           <div className="mt-10 w-full max-w-2xl">
-            <ProviderSelector />
+            <ProviderSelector
+              selected={selectedProviders}
+              onChange={setSelectedProviders}
+            />
           </div>
 
           <div className="mt-6 w-full max-w-2xl">
