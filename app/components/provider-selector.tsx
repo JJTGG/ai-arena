@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { hasProviderKey } from "../../lib/ai/provider-status";
 
-type Provider = "openai" | "anthropic" | "google";
+type Provider = "openai" | "google";
 
 const PROVIDERS: {
   id: Provider;
@@ -12,10 +12,6 @@ const PROVIDERS: {
   {
     id: "openai",
     name: "ChatGPT",
-  },
-  {
-    id: "anthropic",
-    name: "Claude",
   },
   {
     id: "google",
@@ -34,14 +30,12 @@ export default function ProviderSelector({
 }: ProviderSelectorProps) {
   const [available, setAvailable] = useState<Record<Provider, boolean>>({
     openai: false,
-    anthropic: false,
     google: false,
   });
 
   useEffect(() => {
     setAvailable({
       openai: hasProviderKey("openai"),
-      anthropic: hasProviderKey("anthropic"),
       google: hasProviderKey("google"),
     });
   }, []);
@@ -61,7 +55,7 @@ export default function ProviderSelector({
         Models
       </p>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {PROVIDERS.map((provider) => {
           const isSelected = selected.includes(provider.id);
           const hasKey = available[provider.id];
