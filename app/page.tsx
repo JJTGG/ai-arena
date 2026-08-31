@@ -12,9 +12,10 @@ import type { AIMessage, AIProviderId, AIResponse } from "../lib/ai/types";
 type ProviderHistory = Record<AIProviderId, AIMessage[]>;
 
 export default function Home() {
-  const [selectedProviders, setSelectedProviders] = useState<
-    AIProviderId[]
-  >(["openai", "google"]);
+  const [selectedProviders, setSelectedProviders] = useState<AIProviderId[]>([
+    "openai",
+    "google",
+  ]);
 
   const [history, setHistory] = useState<ProviderHistory>({
     openai: [],
@@ -48,71 +49,45 @@ export default function Home() {
 
     try {
       const results = await Promise.allSettled(
-  adapters.map(async (adapter) => {
-    const response = await runArena(
-      {
-        message,
-        history: providerHistories[adapter.provider.id],
-      },
-      [adapter],
-    );
+        adapters.map(async (adapter) => {
+          const response = await runArena(
+            {
+              message,
+              history: providerHistories[adapter.provider.id],
+            },
+            [adapter],
+          );
 
-    return response[0];
-  }),
-);
+          return response[0];
+        }),
+      );
 
-const arenaResponses = results
-  .filter(
-    (
-      result,
-    ): result is PromiseFulfilledResult<AIResponse> =>
-      result.status === "fulfilled",
-  )
-  .map((result) => result.value);
+      const arenaResponses: AIResponse[] = [];
+      const failedProviders: string[] = [];
 
-const failedProviders = results
-  .map((result, index) => ({
-    result,
-    adapter: adapters[index],
-  }))
-  .filter(
-    (
-      item,
-    ): item is {
-      result: PromiseRejectedResult;
-      adapter: (typeof adapters)[number];
-    } => item.result.status === "rejected",
-  );
+      results.forEach((result, index) => {
+        const adapter = adapters[index];
 
-if (arenaResponses.length === 0 && failedProviders.length > 0) {
-  throw new Error(
-    failedProviders
-      .map(
-        ({ result, adapter }) =>
-          `${adapter.provider.name}: ${
-            result.reason instanceof Error
-              ? result.reason.message
-              : "Request failed.",
-          }`,
-      )
-      .join("\n"),
-  );
-}
+        if (result.status === "fulfilled") {
+          arenaResponses.push(result.value);
+        } else {
+          failedProviders.push(
+            `${adapter.provider.name}: ${
+              result.reason instanceof Error
+                ? result.reason.message
+                : "Request failed."
+            }`,
+          );
+        }
+      });
 
-if (failedProviders.length > 0) {
-  setError(
-    failedProviders
-      .map(
-        ({ result, adapter }) =>
-          `${adapter.provider.name}: ${
-            result.reason instanceof Error
-              ? result.reason.message
-              : "Request failed.",
-          }`,
-      )
-      .join("\n"),
-  );
-}
+      if (arenaResponses.length === 0 && failedProviders.length > 0) {
+        throw new Error(failedProviders.join("\n"));
+      }
+
+      if (failedProviders.length > 0) {
+        setError(failedProviders.join("\n"));
+      }
 
       setResponses(arenaResponses);
 
@@ -173,7 +148,7 @@ if (failedProviders.length > 0) {
         />
 
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
           </div>
         )}
