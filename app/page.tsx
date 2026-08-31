@@ -47,19 +47,72 @@ export default function Home() {
     );
 
     try {
-      const arenaResponses = await Promise.all(
-        adapters.map(async (adapter) => {
-          const response = await runArena(
-            {
-              message,
-              history: providerHistories[adapter.provider.id],
-            },
-            [adapter],
-          );
+      const results = await Promise.allSettled(
+  adapters.map(async (adapter) => {
+    const response = await runArena(
+      {
+        message,
+        history: providerHistories[adapter.provider.id],
+      },
+      [adapter],
+    );
 
-          return response[0];
-        }),
-      );
+    return response[0];
+  }),
+);
+
+const arenaResponses = results
+  .filter(
+    (
+      result,
+    ): result is PromiseFulfilledResult<AIResponse> =>
+      result.status === "fulfilled",
+  )
+  .map((result) => result.value);
+
+const failedProviders = results
+  .map((result, index) => ({
+    result,
+    adapter: adapters[index],
+  }))
+  .filter(
+    (
+      item,
+    ): item is {
+      result: PromiseRejectedResult;
+      adapter: (typeof adapters)[number];
+    } => item.result.status === "rejected",
+  );
+
+if (arenaResponses.length === 0 && failedProviders.length > 0) {
+  throw new Error(
+    failedProviders
+      .map(
+        ({ result, adapter }) =>
+          `${adapter.provider.name}: ${
+            result.reason instanceof Error
+              ? result.reason.message
+              : "Request failed.",
+          }`,
+      )
+      .join("\n"),
+  );
+}
+
+if (failedProviders.length > 0) {
+  setError(
+    failedProviders
+      .map(
+        ({ result, adapter }) =>
+          `${adapter.provider.name}: ${
+            result.reason instanceof Error
+              ? result.reason.message
+              : "Request failed.",
+          }`,
+      )
+      .join("\n"),
+  );
+}
 
       setResponses(arenaResponses);
 
