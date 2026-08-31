@@ -4,17 +4,26 @@ import { useState } from "react";
 
 const MAX_LENGTH = 4000;
 
-export default function ChatInput() {
+type ChatInputProps = {
+  onSubmit: (message: string) => void;
+  disabled?: boolean;
+};
+
+export default function ChatInput({
+  onSubmit,
+  disabled = false,
+}: ChatInputProps) {
   const [message, setMessage] = useState("");
 
   function handleSubmit() {
     const trimmedMessage = message.trim();
 
-    if (!trimmedMessage) {
+    if (!trimmedMessage || disabled) {
       return;
     }
 
-    console.log("Arena prompt:", trimmedMessage);
+    onSubmit(trimmedMessage);
+    setMessage("");
   }
 
   return (
@@ -24,7 +33,8 @@ export default function ChatInput() {
         onChange={(event) => setMessage(event.target.value)}
         maxLength={MAX_LENGTH}
         placeholder="Ask anything..."
-        className="min-h-32 w-full resize-none bg-transparent p-3 text-base text-zinc-900 outline-none placeholder:text-zinc-400"
+        disabled={disabled}
+        className="min-h-32 w-full resize-none bg-transparent p-3 text-base text-zinc-900 outline-none placeholder:text-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
       />
 
       <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
@@ -35,10 +45,10 @@ export default function ChatInput() {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!message.trim()}
+          disabled={!message.trim() || disabled}
           className="rounded-xl bg-zinc-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Enter Arena
+          {disabled ? "Running..." : "Enter Arena"}
         </button>
       </div>
     </div>
