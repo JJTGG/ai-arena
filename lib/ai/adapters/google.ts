@@ -20,11 +20,21 @@ export const googleAdapter: AIProviderAdapter = {
     const input = [
       ...request.history.map((message) => ({
         type: message.role === "user" ? "user_input" : "model_output",
-        content: message.content,
+        content: [
+          {
+            type: "text",
+            text: message.content,
+          },
+        ],
       })),
       {
         type: "user_input",
-        content: request.message,
+        content: [
+          {
+            type: "text",
+            text: request.message,
+          },
+        ],
       },
     ];
 
@@ -51,21 +61,26 @@ export const googleAdapter: AIProviderAdapter = {
 
     const data = await response.json();
 
-    const output = data.steps
-      ?.filter((step: { type?: string }) => step.type === "model_output")
-      .flatMap(
-        (step: {
-          content?: Array<{ type?: string; text?: string }>;
-        }) => step.content ?? [],
-      )
-      .filter((item: { type?: string }) => item.type === "text")
-      .map((item: { text?: string }) => item.text ?? "")
-      .join("") ?? "";
+    const content =
+      data.steps
+        ?.filter(
+          (step: { type?: string }) => step.type === "model_output",
+        )
+        .flatMap(
+          (
+            step: {
+              content?: Array<{ type?: string; text?: string }>;
+            },
+          ) => step.content ?? [],
+        )
+        .filter((item: { type?: string }) => item.type === "text")
+        .map((item: { text?: string }) => item.text ?? "")
+        .join("") ?? "";
 
     return {
       provider: "google",
       model: GOOGLE_MODEL,
-      content: output,
+      content,
     };
   },
 };
