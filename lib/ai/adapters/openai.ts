@@ -17,6 +17,14 @@ export const openAIAdapter: AIProviderAdapter = {
       throw new Error("OpenAI API key is not configured.");
     }
 
+    const input = [
+      ...request.history,
+      {
+        role: "user",
+        content: request.message,
+      },
+    ];
+
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -25,7 +33,7 @@ export const openAIAdapter: AIProviderAdapter = {
       },
       body: JSON.stringify({
         model: OPENAI_MODEL,
-        input: request.messages,
+        input,
       }),
     });
 
@@ -38,6 +46,7 @@ export const openAIAdapter: AIProviderAdapter = {
 
     return {
       provider: "openai",
+      model: OPENAI_MODEL,
       content: data.output_text ?? "",
     };
   },
