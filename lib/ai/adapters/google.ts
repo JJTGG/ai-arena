@@ -1,7 +1,7 @@
 import type { AIProviderAdapter } from "../provider";
 import type { AIRequest, AIResponse } from "../types";
 
-const GOOGLE_MODEL = "gemini-2.5-flash";
+const GOOGLE_MODEL = "gemini-3.6-flash";
 
 export const googleAdapter: AIProviderAdapter = {
   provider: {
@@ -17,26 +17,29 @@ export const googleAdapter: AIProviderAdapter = {
       throw new Error("Google API key is not configured.");
     }
 
-    const contents = [
+    const input = [
       ...request.history.map((message) => ({
-        role: message.role === "assistant" ? "model" : "user",
-        parts: [{ text: message.content }],
+        type: message.role === "user" ? "user_input" : "model_output",
+        content: message.content,
       })),
       {
-        role: "user",
-        parts: [{ text: request.message }],
+        type: "user_input",
+        content: request.message,
       },
     ];
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GOOGLE_MODEL}:generateContent?key=${apiKey}`,
+      "https://generativelanguage.googleapis.com/v1beta/interactions",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
         },
         body: JSON.stringify({
-          contents,
+          model: GOOGLE_MODEL,
+          input,
+          store: false,
         }),
       },
     );
@@ -48,15 +51,21 @@ export const googleAdapter: AIProviderAdapter = {
 
     const data = await response.json();
 
-    const content =
-      data.candidates?.[0]?.content?.parts
-        ?.map((part: { text?: string }) => part.text ?? "")
-        .join("") ?? "";
+    const output = data.steps
+      ?.filter((step: { type?: string }) => step.type === "model_output")
+      .flatMap(
+        (step: {
+          content?: Array<{ type?: string; text?: string }>;
+        }) => step.content ?? [],
+      )
+      .filter((item: { type?: string }) => item.type === "text")
+      .map((item: { text?: string }) => item.text ?? "")
+      .join("") ?? "";
 
     return {
       provider: "google",
       model: GOOGLE_MODEL,
-      content,
+      content: output,
     };
   },
 };
