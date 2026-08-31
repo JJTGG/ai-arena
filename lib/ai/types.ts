@@ -1,4 +1,4 @@
-export type AIProviderId = "openai" | "anthropic" | "google";
+export type AIProviderId = "openai" | "google";
 
 export type AIProvider = {
   id: AIProviderId;
