@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 
-type Provider = "openai" | "anthropic" | "google";
+type Provider = "openai" | "google";
 
 const STORAGE_KEYS: Record<Provider, string> = {
   openai: "ai-arena-openai-key",
-  anthropic: "ai-arena-anthropic-key",
   google: "ai-arena-google-key",
 };
 
@@ -21,11 +20,6 @@ const PROVIDERS: {
     description: "OpenAI API key",
   },
   {
-    id: "anthropic",
-    name: "Claude",
-    description: "Anthropic API key",
-  },
-  {
     id: "google",
     name: "Gemini",
     description: "Google AI API key",
@@ -35,13 +29,11 @@ const PROVIDERS: {
 export default function ApiKeyManager() {
   const [keys, setKeys] = useState<Record<Provider, string>>({
     openai: "",
-    anthropic: "",
     google: "",
   });
 
   const [saved, setSaved] = useState<Record<Provider, boolean>>({
     openai: false,
-    anthropic: false,
     google: false,
   });
 
