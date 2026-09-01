@@ -25,9 +25,9 @@
   --success: #8fcf4f;
   --danger: #ef6461;
 
-  --font-sans: "Inter", Arial, Helvetica, sans-serif;
-  --font-display: "Oswald", Impact, sans-serif;
-  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+  --font-sans: var(--font-inter), Arial, Helvetica, sans-serif;
+--font-display: var(--font-oswald), Impact, sans-serif;
+--font-mono: var(--font-plex-mono), "Courier New", monospace;
 }
 
 [data-theme="light"] {
