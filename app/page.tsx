@@ -171,6 +171,29 @@ useEffect(() => {
           disabled={loading || selectedProviders.length === 0}
         />
 
+        {Object.values(history).some(
+  (providerHistory) => providerHistory.length > 0,
+) && (
+  <button
+    type="button"
+    onClick={() => {
+      setHistory({
+        openai: [],
+        google: [],
+      });
+
+      setResponses([]);
+      setError("");
+      sessionStorage.removeItem("ai-arena-history");
+    }}
+    disabled={loading}
+    className="self-end rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-600 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    Clear conversation
+  </button>
+)}
+
+
         {error && (
           <div className="whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
