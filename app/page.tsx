@@ -144,106 +144,180 @@ useEffect(() => {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-6 py-12 text-zinc-950">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
-        <header>
-          <h1 className="text-4xl font-bold tracking-tight">AI Arena</h1>
-          <p className="mt-2 text-zinc-500">
-            Compare AI models side by side.
-          </p>
-        </header>
+  <main className="min-h-screen bg-[var(--background)] px-4 py-6 text-[var(--foreground)] sm:px-6 sm:py-10">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+      <header className="border-b border-[var(--border)] pb-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--accent)]">
+              Multi-model intelligence
+            </p>
 
-        <ApiKeyManager />
+            <h1 className="font-[family-name:var(--font-display)] text-5xl uppercase leading-none tracking-wide text-[var(--foreground)] sm:text-6xl">
+              AI Arena
+            </h1>
 
-        <ProviderSelector
-          selected={selectedProviders}
-          onChange={setSelectedProviders}
-        />
-
-        {selectedProviders.length === 0 && (
-          <p className="text-sm text-red-500">
-            Select at least one model before entering the Arena.
-          </p>
-        )}
-
-        <ChatInput
-          onSubmit={handleSubmit}
-          disabled={loading || selectedProviders.length === 0}
-        />
-
-        {Object.values(history).some(
-  (providerHistory) => providerHistory.length > 0,
-) && (
-  <button
-    type="button"
-    onClick={() => {
-      setHistory({
-        openai: [],
-        google: [],
-      });
-
-      setResponses([]);
-      setError("");
-      sessionStorage.removeItem("ai-arena-history");
-    }}
-    disabled={loading}
-    className="self-end rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-600 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
-  >
-    Clear conversation
-  </button>
-)}
-
-
-        {error && (
-          <div className="whitespace-pre-wrap rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--foreground-muted)]">
+              Put models head-to-head. Compare how they think, respond, and
+              explain.
+            </p>
           </div>
-        )}
 
-        {selectedProviders.length > 0 && (
-  <section className="grid gap-4 md:grid-cols-2">
-    {selectedProviders.map((providerId) => {
-      const providerHistory = history[providerId];
+          <div className="hidden text-right sm:block">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
+              V1.0.0
+            </p>
+            <p className="mt-1 font-mono text-xs text-[var(--foreground-muted)]">
+              BYOK MODE
+            </p>
+          </div>
+        </div>
+      </header>
 
-      if (!providerHistory || providerHistory.length === 0) {
-        return null;
-      }
+      <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
+        <div className="space-y-6">
+          <ApiKeyManager />
 
-      return (
-        <article
-          key={providerId}
-          className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
-        >
-          <h2 className="mb-4 font-semibold capitalize">
-            {providerId}
-          </h2>
+          <ProviderSelector
+            selected={selectedProviders}
+            onChange={setSelectedProviders}
+          />
 
-          <div className="space-y-4">
-            {providerHistory.map((message, index) => (
-              <div
-                key={`${providerId}-${index}`}
-                className={
-                  message.role === "user"
-                    ? "rounded-xl bg-zinc-100 p-3"
-                    : "rounded-xl border border-zinc-200 p-3"
-                }
-              >
-                <p className="mb-1 text-xs font-medium uppercase text-zinc-400">
-                  {message.role === "user" ? "You" : providerId}
+          {selectedProviders.length === 0 && (
+            <div className="rounded-xl border border-[var(--danger)]/40 bg-[var(--surface)] p-4">
+              <p className="font-mono text-xs uppercase tracking-wide text-[var(--danger)]">
+                Arena locked
+              </p>
+
+              <p className="mt-2 text-sm text-[var(--foreground-muted)]">
+                Select at least one model before entering the Arena.
+              </p>
+            </div>
+          )}
+
+          <ChatInput
+            onSubmit={handleSubmit}
+            disabled={loading || selectedProviders.length === 0}
+          />
+        </div>
+
+        <div className="min-w-0">
+          <div className="mb-3 flex items-center gap-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--foreground-muted)]">
+              Arena output
+            </p>
+
+            <span className="h-px flex-1 bg-[var(--border)]" />
+
+            {loading && (
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">
+                Running...
+              </span>
+            )}
+          </div>
+
+          {error && (
+            <div className="mb-4 whitespace-pre-wrap rounded-xl border border-[var(--danger)]/40 bg-[var(--surface)] p-4 font-mono text-xs leading-5 text-[var(--danger)]">
+              {error}
+            </div>
+          )}
+
+          {Object.values(history).every(
+            (providerHistory) => providerHistory.length === 0,
+          ) && !loading && (
+            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-8 text-center">
+              <div>
+                <p className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wide text-[var(--foreground-muted)]">
+                  Enter the Arena
                 </p>
 
-                <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-700">
-                  {message.content}
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[var(--foreground-subtle)]">
+                  Add your provider keys, select your models, and send your
+                  first prompt.
                 </p>
               </div>
-            ))}
-          </div>
-        </article>
-      );
-    })}
-  </section>
-)}
+            </div>
+          )}
+
+          {Object.values(history).some(
+            (providerHistory) => providerHistory.length > 0,
+          ) && (
+            <div className="space-y-4">
+              {selectedProviders.map((providerId) => {
+                const providerHistory = history[providerId];
+
+                if (!providerHistory || providerHistory.length === 0) {
+                  return null;
+                }
+
+                return (
+                  <article
+                    key={providerId}
+                    className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]"
+                  >
+                    <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
+                      <h2 className="font-[family-name:var(--font-display)] text-lg uppercase tracking-wide text-[var(--foreground)]">
+                        {providerId}
+                      </h2>
+
+                      <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
+                        Response
+                      </span>
+                    </div>
+
+                    <div className="space-y-3 p-4">
+                      {providerHistory.map((message, index) => (
+                        <div
+                          key={`${providerId}-${index}`}
+                          className={
+                            message.role === "user"
+                              ? "rounded-xl border border-[var(--accent)]/20 bg-[var(--surface-raised)] p-4"
+                              : "rounded-xl border border-[var(--border)] bg-[var(--background)] p-4"
+                          }
+                        >
+                          <p
+                            className={`mb-2 font-mono text-[9px] font-medium uppercase tracking-[0.2em] ${
+                              message.role === "user"
+                                ? "text-[var(--accent)]"
+                                : "text-[var(--foreground-subtle)]"
+                            }`}
+                          >
+                            {message.role === "user" ? "You" : providerId}
+                          </p>
+
+                          <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--foreground)]">
+                            {message.content}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                );
+              })}
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHistory({
+                      openai: [],
+                      google: [],
+                    });
+
+                    setResponses([]);
+                    setError("");
+                    sessionStorage.removeItem("ai-arena-history");
+                  }}
+                  disabled={loading}
+                  className="rounded-lg border border-[var(--border)] px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-[var(--foreground-muted)] transition hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Clear conversation
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </main>
-  );
-}
+    </div>
+  </main>
+);
