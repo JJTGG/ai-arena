@@ -50,40 +50,63 @@ export default function ProviderSelector({
   }
 
   return (
-    <div className="w-full max-w-2xl">
-      <p className="mb-3 text-sm font-medium text-zinc-700">
-        Models
+  <div className="w-full max-w-2xl">
+    <div className="mb-3 flex items-center gap-3">
+      <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--foreground-muted)]">
+        Select models
       </p>
 
-      <div className="grid grid-cols-2 gap-3">
-        {PROVIDERS.map((provider) => {
-          const isSelected = selected.includes(provider.id);
-          const hasKey = available[provider.id];
+      <span className="h-px flex-1 bg-[var(--border)]" />
+    </div>
 
-          return (
-            <button
-              key={provider.id}
-              type="button"
-              onClick={() => toggleProvider(provider.id)}
-              className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
-                isSelected
-                  ? "border-zinc-950 bg-zinc-950 text-white"
-                  : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
-              }`}
-            >
-              <span className="block">{provider.name}</span>
+    <div className="grid grid-cols-2 gap-3">
+      {PROVIDERS.map((provider) => {
+        const isSelected = selected.includes(provider.id);
+        const hasKey = available[provider.id];
 
+        return (
+          <button
+            key={provider.id}
+            type="button"
+            onClick={() => toggleProvider(provider.id)}
+            className={`rounded-xl border p-4 text-left transition ${
+              isSelected
+                ? "border-[var(--accent)] bg-[var(--surface-raised)]"
+                : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)]"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
               <span
-                className={`mt-1 block text-xs ${
-                  isSelected ? "text-zinc-300" : "text-zinc-400"
+                className={`font-mono text-sm font-medium ${
+                  isSelected
+                    ? "text-[var(--foreground)]"
+                    : "text-[var(--foreground-muted)]"
                 }`}
               >
-                {hasKey ? "API key ready" : "No API key"}
+                {provider.name}
               </span>
-            </button>
-          );
-        })}
-      </div>
+
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  hasKey
+                    ? "bg-[var(--success)]"
+                    : "bg-[var(--foreground-subtle)]"
+                }`}
+              />
+            </div>
+
+            <span
+              className={`mt-2 block font-mono text-[10px] uppercase tracking-wider ${
+                hasKey
+                  ? "text-[var(--success)]"
+                  : "text-[var(--foreground-subtle)]"
+              }`}
+            >
+              {hasKey ? "API key ready" : "No API key"}
+            </span>
+          </button>
+        );
+      })}
     </div>
-  );
-}
+  </div>
+);
