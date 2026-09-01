@@ -9,6 +9,6 @@ export const AI_PROVIDERS: AIProvider[] = [
   {
     id: "google",
     name: "Google",
-    model: "gemini-3.7-flash",
+    model: "gemini-3.6-flash",
   },
 ];
