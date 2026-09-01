@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ApiKeyManager from "./components/api-key-manager";
 import ChatInput from "./components/chat-input";
 import ProviderSelector from "./components/provider-selector";
@@ -21,6 +21,20 @@ export default function Home() {
     openai: [],
     google: [],
   });
+
+useEffect(() => {
+  const storedHistory = sessionStorage.getItem("ai-arena-history");
+
+  if (!storedHistory) {
+    return;
+  }
+
+  try {
+    setHistory(JSON.parse(storedHistory));
+  } catch {
+    sessionStorage.removeItem("ai-arena-history");
+  }
+}, []);
 
   const [responses, setResponses] = useState<AIResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -92,24 +106,29 @@ export default function Home() {
       setResponses(arenaResponses);
 
       setHistory((currentHistory) => {
-        const updatedHistory = { ...currentHistory };
+  const updatedHistory = { ...currentHistory };
 
-        for (const response of arenaResponses) {
-          updatedHistory[response.provider] = [
-            ...currentHistory[response.provider],
-            {
-              role: "user",
-              content: message,
-            },
-            {
-              role: "assistant",
-              content: response.content,
-            },
-          ];
-        }
+  for (const response of arenaResponses) {
+    updatedHistory[response.provider] = [
+      ...currentHistory[response.provider],
+      {
+        role: "user",
+        content: message,
+      },
+      {
+        role: "assistant",
+        content: response.content,
+      },
+    ];
+  }
 
-        return updatedHistory;
-      });
+  sessionStorage.setItem(
+    "ai-arena-history",
+    JSON.stringify(updatedHistory),
+  );
+
+  return updatedHistory;
+});
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Something went wrong.",
