@@ -8,6 +8,7 @@ import { openAIAdapter } from "../lib/ai/adapters/openai";
 import { googleAdapter } from "../lib/ai/adapters/google";
 import { runArena } from "../lib/ai/arena";
 import type { AIMessage, AIProviderId, AIResponse } from "../lib/ai/types";
+import { recordUsage } from "../lib/ai/usage";
 
 type ProviderHistory = Record<AIProviderId, AIMessage[]>;
 
@@ -104,6 +105,10 @@ useEffect(() => {
       }
 
       setResponses(arenaResponses);
+
+      recordUsage(
+  arenaResponses.map((response) => response.provider),
+);
 
       setHistory((currentHistory) => {
   const updatedHistory = { ...currentHistory };
