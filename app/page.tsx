@@ -177,27 +177,49 @@ useEffect(() => {
           </div>
         )}
 
-        {responses.length > 0 && (
-          <section className="grid gap-4 md:grid-cols-2">
-            {responses.map((response) => (
-              <article
-                key={response.provider}
-                className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
+        {selectedProviders.length > 0 && (
+  <section className="grid gap-4 md:grid-cols-2">
+    {selectedProviders.map((providerId) => {
+      const providerHistory = history[providerId];
+
+      if (!providerHistory || providerHistory.length === 0) {
+        return null;
+      }
+
+      return (
+        <article
+          key={providerId}
+          className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
+        >
+          <h2 className="mb-4 font-semibold capitalize">
+            {providerId}
+          </h2>
+
+          <div className="space-y-4">
+            {providerHistory.map((message, index) => (
+              <div
+                key={`${providerId}-${index}`}
+                className={
+                  message.role === "user"
+                    ? "rounded-xl bg-zinc-100 p-3"
+                    : "rounded-xl border border-zinc-200 p-3"
+                }
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="font-semibold">{response.provider}</h2>
-                  <span className="text-xs text-zinc-400">
-                    {response.model}
-                  </span>
-                </div>
+                <p className="mb-1 text-xs font-medium uppercase text-zinc-400">
+                  {message.role === "user" ? "You" : providerId}
+                </p>
 
                 <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-700">
-                  {response.content}
+                  {message.content}
                 </p>
-              </article>
+              </div>
             ))}
-          </section>
-        )}
+          </div>
+        </article>
+      );
+    })}
+  </section>
+)}
       </div>
     </main>
   );
