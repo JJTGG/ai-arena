@@ -9,6 +9,7 @@ import { googleAdapter } from "../lib/ai/adapters/google";
 import { runArena } from "../lib/ai/arena";
 import type { AIMessage, AIProviderId, AIResponse } from "../lib/ai/types";
 import { recordUsage } from "../lib/ai/usage";
+import ResponseCard from "./components/response-card";
 
 type ProviderHistory = Record<AIProviderId, AIMessage[]>;
 
