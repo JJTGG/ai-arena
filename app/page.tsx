@@ -232,21 +232,51 @@ useEffect(() => {
           )}
 
           {Object.values(history).every(
-            (providerHistory) => providerHistory.length === 0,
-          ) && !loading && (
-            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-8 text-center">
-              <div>
-                <p className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wide text-[var(--foreground-muted)]">
-                  Enter the Arena
-                </p>
+  (providerHistory) => providerHistory.length === 0,
+) && !loading && (
+  <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+    <div className="border-b border-[var(--border)] px-5 py-3">
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
+          Arena status
+        </span>
 
-                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[var(--foreground-subtle)]">
-                  Add your provider keys, select your models, and send your
-                  first prompt.
-                </p>
-              </div>
-            </div>
-          )}
+        <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--success)]">
+          Ready
+        </span>
+      </div>
+    </div>
+
+    <div className="flex min-h-[280px] items-center justify-center p-8 text-center">
+      <div className="w-full max-w-md">
+        <p className="font-[family-name:var(--font-display)] text-4xl uppercase tracking-wide text-[var(--foreground)] sm:text-5xl">
+          Enter the Arena
+        </p>
+
+        <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[var(--foreground-muted)]">
+          Choose your models, connect your API keys, and put them
+          head-to-head.
+        </p>
+
+        <div className="mt-7 flex items-center justify-center gap-2">
+          {selectedProviders.map((providerId) => (
+            <span
+              key={providerId}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--foreground-muted)]"
+            >
+              {providerId}
+            </span>
+          ))}
+        </div>
+
+        <p className="mt-5 font-mono text-[8px] uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">
+          {selectedProviders.length}{" "}
+          {selectedProviders.length === 1 ? "model" : "models"} selected
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
           {Object.values(history).some(
             (providerHistory) => providerHistory.length > 0,
