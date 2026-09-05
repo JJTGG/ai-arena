@@ -211,10 +211,18 @@ useEffect(() => {
             <span className="h-px flex-1 bg-[var(--border)]" />
 
             {loading && (
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--accent)]">
-                Running...
-              </span>
-            )}
+  <div className="flex items-center gap-2">
+    <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--accent)]">
+      Arena active
+    </span>
+
+    <span className="flex items-center gap-1">
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--cyan)]" />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--magenta)] [animation-delay:150ms]" />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--lime)] [animation-delay:300ms]" />
+    </span>
+  </div>
+)}
           </div>
 
           {error && (
