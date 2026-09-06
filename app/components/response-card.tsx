@@ -36,9 +36,9 @@ export default function ResponseCard({
                 : "bg-[var(--background)]"
             }`}
           >
-            <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--foreground-muted)]">
-              {message.role}
-            </p>
+            <h3 className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wide text-[var(--foreground)]">
+  {providerId === "google" ? "Gemini" : "OpenAI"}
+</h3>
             <p className="whitespace-pre-wrap text-sm text-[var(--foreground)]">
               {message.content}
             </p>
