@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter, Oswald } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const inter = Inter({
@@ -34,6 +35,7 @@ export default function RootLayout({
         className={`${inter.variable} ${oswald.variable} ${plexMono.variable}`}
       >
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );
