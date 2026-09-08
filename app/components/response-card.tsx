@@ -17,12 +17,9 @@ export default function ResponseCard({
     <div className="flex flex-col gap-4 rounded-lg border border-[var(--border)] bg-[var(--background-card)] p-6">
       <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
         <div className="flex flex-col gap-1">
-          <h3 className="font-mono text-sm font-semibold uppercase tracking-wider text-[var(--foreground)]">
-            {providerId}
+          <h3 className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wide text-[var(--foreground)]">
+            {providerId === "google" ? "Gemini" : "OpenAI"}
           </h3>
-          <p className="font-mono text-xs text-[var(--foreground-muted)]">
-            {model}
-          </p>
         </div>
       </div>
 
@@ -36,9 +33,6 @@ export default function ResponseCard({
                 : "bg-[var(--background)]"
             }`}
           >
-            <h3 className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wide text-[var(--foreground)]">
-  {providerId === "google" ? "Gemini" : "OpenAI"}
-</h3>
             <p className="whitespace-pre-wrap text-sm text-[var(--foreground)]">
               {message.content}
             </p>
