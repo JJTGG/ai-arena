@@ -10,7 +10,6 @@ interface ResponseCardProps {
 
 export default function ResponseCard({
   providerId,
-  model,
   messages,
 }: ResponseCardProps) {
   const providerName = providerId === "google" ? "Gemini" : "ChatGPT";
@@ -26,10 +25,6 @@ export default function ResponseCard({
               {providerName}
             </h3>
           </div>
-
-          <p className="mt-1 truncate font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-            {model}
-          </p>
         </div>
 
         <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 font-[family-name:var(--font-mono)] text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-muted)]">
