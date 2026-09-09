@@ -84,13 +84,13 @@ export default function ApiKeyManager() {
   }
 
   return (
-    <section className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 text-left shadow-sm">
+    <section className="w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-left shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
       <div>
-        <h2 className="text-lg font-semibold text-zinc-950">
+        <h2 className="text-lg font-semibold text-[var(--foreground)]">
           Your API keys
         </h2>
 
-        <p className="mt-1 text-sm leading-6 text-zinc-500">
+        <p className="mt-1 text-sm leading-6 text-[var(--foreground-muted)]">
           Your keys are stored only in this browser.
         </p>
       </div>
@@ -100,17 +100,17 @@ export default function ApiKeyManager() {
           <div key={provider.id} className="space-y-2">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-zinc-900">
+                <p className="text-sm font-medium text-[var(--foreground)]">
                   {provider.name}
                 </p>
 
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-[var(--foreground-muted)]">
                   {provider.description}
                 </p>
               </div>
 
               {saved[provider.id] && (
-                <span className="text-xs font-medium text-zinc-500">
+                <span className="text-xs font-medium text-[var(--success)]">
                   Saved
                 </span>
               )}
@@ -131,13 +131,13 @@ export default function ApiKeyManager() {
                     ? "Key saved"
                     : `Enter ${provider.name} API key`
                 }
-                className="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-400"
+                className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--foreground-subtle)] focus:border-[var(--accent)]"
               />
 
               <button
                 type="button"
                 onClick={() => saveKey(provider.id)}
-                className="rounded-xl bg-zinc-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-zinc-800"
+                className="rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-medium text-[var(--accent-foreground)] transition hover:bg-[var(--accent-hover)]"
               >
                 Save
               </button>
@@ -146,7 +146,7 @@ export default function ApiKeyManager() {
                 <button
                   type="button"
                   onClick={() => removeKey(provider.id)}
-                  className="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100"
+                  className="rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-medium text-[var(--foreground-muted)] transition hover:bg-[var(--surface-hover)]"
                 >
                   Remove
                 </button>
@@ -156,7 +156,7 @@ export default function ApiKeyManager() {
         ))}
       </div>
 
-      <p className="mt-6 text-xs leading-5 text-zinc-400">
+      <p className="mt-6 text-xs leading-5 text-[var(--foreground-subtle)]">
         Only use your own API keys. Anyone with access to this browser profile
         may be able to access stored keys.
       </p>
