@@ -13,32 +13,50 @@ export default function ResponseCard({
   model,
   messages,
 }: ResponseCardProps) {
-  return (
-    <div className="flex flex-col gap-4 rounded-lg border border-[var(--border)] bg-[var(--background-card)] p-6">
-      <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
-        <div className="flex flex-col gap-1">
-          <h3 className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wide text-[var(--foreground)]">
-            {providerId === "google" ? "Gemini" : "OpenAI"}
-          </h3>
-        </div>
-      </div>
+  const providerName = providerId === "google" ? "Gemini" : "ChatGPT";
 
-      <div className="flex flex-col gap-4">
+  return (
+    <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+      <header className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--accent)]" />
+
+            <h3 className="truncate font-[family-name:var(--font-display)] text-xl uppercase tracking-wide text-[var(--foreground)]">
+              {providerName}
+            </h3>
+          </div>
+
+          <p className="mt-1 truncate font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
+            {model}
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 font-[family-name:var(--font-mono)] text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-muted)]">
+          Response
+        </span>
+      </header>
+
+      <div className="flex flex-col gap-4 p-5">
         {messages.map((message, index) => (
           <div
             key={index}
-            className={`rounded-lg p-4 ${
+            className={`rounded-xl border p-4 ${
               message.role === "user"
-                ? "bg-[var(--background-subtle)]"
-                : "bg-[var(--background)]"
+                ? "border-[var(--border)] bg-[var(--surface-raised)]"
+                : "border-[var(--border)] bg-[var(--background)]"
             }`}
           >
-            <p className="whitespace-pre-wrap text-sm text-[var(--foreground)]">
+            <div className="mb-2 font-[family-name:var(--font-mono)] text-[9px] uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">
+              {message.role === "user" ? "Prompt" : providerName}
+            </div>
+
+            <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--foreground)]">
               {message.content}
             </p>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
