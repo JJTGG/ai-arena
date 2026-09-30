@@ -1,20 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #08090a;
-  --surface: #0f1113;
-  --surface-raised: #15181b;
-  --surface-hover: #1b1f23;
+  --background: #07090b;
+  --surface: #0d1013;
+  --surface-raised: #13171b;
+  --surface-hover: #181d22;
 
-  --border: #262b30;
-  --border-strong: #343b42;
+  --border: #252b31;
+  --border-strong: #394149;
 
-  --foreground: #f2f3f4;
-  --foreground-muted: #9299a1;
-  --foreground-subtle: #626a73;
+  --foreground: #f3f5f6;
+  --foreground-muted: #919aa3;
+  --foreground-subtle: #5f6972;
 
   --accent: #f5a524;
-  --accent-hover: #ffb83d;
+  --accent-hover: #ffbd52;
   --accent-foreground: #08090a;
 
   --cyan: #28c7d9;
@@ -26,25 +26,38 @@
   --danger: #ef6461;
 
   --font-sans: var(--font-inter), Arial, Helvetica, sans-serif;
---font-display: var(--font-oswald), Impact, sans-serif;
---font-mono: var(--font-plex-mono), "Courier New", monospace;
+  --font-display: var(--font-oswald), Impact, sans-serif;
+  --font-mono: var(--font-plex-mono), "Courier New", monospace;
+
+  --arena-grid-size: 42px;
+  --arena-line: rgba(255, 255, 255, 0.032);
+
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.2rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.3rem;
+  --radius-xl: 0.4rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.65rem;
+
+  color-scheme: dark;
 }
 
 [data-theme="light"] {
-  --background: #f4f3ef;
-  --surface: #ffffff;
-  --surface-raised: #faf9f6;
-  --surface-hover: #efeee9;
+  --background: #f1f0eb;
+  --surface: #fbfaf7;
+  --surface-raised: #f6f4ee;
+  --surface-hover: #eceae3;
 
-  --border: #deddd7;
-  --border-strong: #c8c6be;
+  --border: #d8d5cc;
+  --border-strong: #bbb7ac;
 
-  --foreground: #151617;
-  --foreground-muted: #62666b;
+  --foreground: #151719;
+  --foreground-muted: #646a70;
   --foreground-subtle: #8a8d91;
 
-  --accent: #c77a00;
-  --accent-hover: #a96400;
+  --accent: #bd7100;
+  --accent-hover: #9e5d00;
   --accent-foreground: #ffffff;
 
   --cyan: #087f8c;
@@ -54,6 +67,10 @@
 
   --success: #4d8b18;
   --danger: #c63c39;
+
+  --arena-line: rgba(20, 24, 28, 0.055);
+
+  color-scheme: light;
 }
 
 * {
@@ -65,6 +82,7 @@
 html {
   min-height: 100%;
   background: var(--background);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -72,12 +90,57 @@ body {
   max-width: 100vw;
   overflow-x: hidden;
 
-  background: var(--background);
+  background:
+    radial-gradient(
+      circle at 8% 8%,
+      rgba(40, 199, 217, 0.055),
+      transparent 28rem
+    ),
+    radial-gradient(
+      circle at 92% 18%,
+      rgba(228, 90, 168, 0.045),
+      transparent 26rem
+    ),
+    linear-gradient(to right, var(--arena-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--arena-line) 1px, transparent 1px),
+    var(--background);
+  background-size:
+    auto,
+    auto,
+    var(--arena-grid-size) var(--arena-grid-size),
+    var(--arena-grid-size) var(--arena-grid-size),
+    auto;
   color: var(--foreground);
 
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+body::after {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(255, 255, 255, 0.012) 50%,
+      transparent 100%
+    );
+  opacity: 0.7;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 button,
@@ -94,12 +157,306 @@ button:disabled {
   cursor: not-allowed;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+textarea,
+input {
+  caret-color: var(--accent);
 }
 
-::selection {
+textarea::selection,
+input::selection {
   background: var(--accent);
   color: var(--accent-foreground);
+}
+
+textarea {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+textarea::-webkit-scrollbar {
+  width: 7px;
+}
+
+textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+textarea::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground-subtle);
+}
+
+button,
+a,
+textarea,
+input,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Arena geometry */
+main {
+  position: relative;
+  isolation: isolate;
+}
+
+main::before {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(72rem, calc(100% - 2rem));
+  height: 1px;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(245, 165, 36, 0.65),
+    transparent
+  );
+  transform: translateX(-50%);
+}
+
+main section {
+  position: relative;
+}
+
+main section::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.018) 20%,
+    rgba(255, 255, 255, 0.018) 80%,
+    transparent
+  );
+}
+
+/* Replace the old soft dashboard geometry with tighter Arena geometry. */
+main .rounded-2xl {
+  border-radius: var(--radius-2xl) !important;
+}
+
+main .rounded-xl {
+  border-radius: var(--radius-xl) !important;
+}
+
+main .rounded-lg {
+  border-radius: var(--radius-lg) !important;
+}
+
+main .rounded-full {
+  border-radius: 999px !important;
+}
+
+/* The old long floating-card shadows are intentionally removed. */
+main [class*="shadow-"] {
+  box-shadow: none !important;
+}
+
+/* Interaction */
+main button,
+main a {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+main button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+main button:not(:disabled):hover {
+  border-color: var(--border-strong);
+}
+
+main a:active {
+  transform: translateY(1px);
+}
+
+/* Give buttons and links a more deliberate control-room feel. */
+main button {
+  min-height: 2.4rem;
+}
+
+main a {
+  min-height: 2.2rem;
+}
+
+/* Details / history */
+details summary {
+  position: relative;
+  padding-right: 1.25rem;
+  cursor: pointer;
+}
+
+details summary::after {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  content: "+";
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  line-height: 1;
+  color: var(--foreground-subtle);
+  transform: translateY(-50%);
+}
+
+details[open] summary::after {
+  content: "−";
+  color: var(--accent);
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Arena motion */
+@keyframes arena-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.94);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes arena-scan {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+
+  15%,
+  85% {
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes arena-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  45% {
+    opacity: 0.72;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  52% {
+    opacity: 0.84;
+  }
+
+  56% {
+    opacity: 1;
+  }
+}
+
+main .animate-pulse {
+  animation: arena-pulse 1.6s ease-in-out infinite;
+}
+
+/* Provider activity */
+main [class*="bg-\[var\(--cyan\)\]"] {
+  will-change: opacity, transform;
+}
+
+main [class*="bg-\[var\(--magenta\)\]"] {
+  will-change: opacity, transform;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  :root {
+    --arena-grid-size: 34px;
+  }
+
+  body {
+    background:
+      radial-gradient(
+        circle at 14% 5%,
+        rgba(40, 199, 217, 0.045),
+        transparent 18rem
+      ),
+      radial-gradient(
+        circle at 86% 15%,
+        rgba(228, 90, 168, 0.035),
+        transparent 18rem
+      ),
+      linear-gradient(to right, var(--arena-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--arena-line) 1px, transparent 1px),
+      var(--background);
+    background-size:
+      auto,
+      auto,
+      var(--arena-grid-size) var(--arena-grid-size),
+      var(--arena-grid-size) var(--arena-grid-size),
+      auto;
+  }
+
+  main::before {
+    width: calc(100% - 2rem);
+  }
+
+  main button,
+  main a {
+    min-height: 2.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
