@@ -49,7 +49,9 @@ function formatRound(round: number) {
 
 function getFailureMessage(error: unknown) {
   const message =
-    error instanceof Error ? error.message.toLowerCase() : "";
+    error instanceof Error
+      ? error.message.toLowerCase()
+      : "";
 
   if (
     message.includes("401") ||
@@ -57,7 +59,7 @@ function getFailureMessage(error: unknown) {
     message.includes("unauthorized") ||
     message.includes("api key")
   ) {
-    return "The API key was rejected. Check the key and provider account.";
+    return "The API key was rejected.";
   }
 
   if (
@@ -68,58 +70,75 @@ function getFailureMessage(error: unknown) {
     message.includes("credit") ||
     message.includes("insufficient")
   ) {
-    return "The provider reported a quota, limit, or available-credit issue.";
+    return "The provider reported a quota or available-credit issue.";
   }
 
   return "The provider could not complete this round.";
 }
 
 export default function Home() {
-  const [selectedProviders, setSelectedProviders] = useState<
-    AIProviderId[]
-  >([]);
+  const [selectedProviders, setSelectedProviders] =
+    useState<AIProviderId[]>([]);
 
-  const [availableProviders, setAvailableProviders] = useState<
-    Record<AIProviderId, boolean>
-  >({
-    openai: false,
-    google: false,
-  });
+  const [availableProviders, setAvailableProviders] =
+    useState<Record<AIProviderId, boolean>>({
+      openai: false,
+      google: false,
+    });
 
   const [history, setHistory] =
-    useState<ProviderHistory>(EMPTY_HISTORY);
+    useState<ProviderHistory>(
+      EMPTY_HISTORY,
+    );
 
-  const [responses, setResponses] = useState<AIResponse[]>([]);
+  const [responses, setResponses] =
+    useState<AIResponse[]>([]);
 
-  const [providerErrors, setProviderErrors] = useState<
-    Partial<Record<AIProviderId, string>>
-  >({});
+  const [providerErrors, setProviderErrors] =
+    useState<
+      Partial<Record<AIProviderId, string>>
+    >({});
 
   const [providerRoundState, setProviderRoundState] =
-    useState<Record<AIProviderId, ProviderRoundState>>(
-      EMPTY_PROVIDER_STATE,
-    );
+    useState<
+      Record<
+        AIProviderId,
+        ProviderRoundState
+      >
+    >(EMPTY_PROVIDER_STATE);
 
   const [roundState, setRoundState] =
     useState<RoundState>("idle");
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [currentRound, setCurrentRound] = useState(0);
-  const [nextRound, setNextRound] = useState(1);
-  const [activePrompt, setActivePrompt] = useState("");
+  const [currentRound, setCurrentRound] =
+    useState(0);
+
+  const [nextRound, setNextRound] =
+    useState(1);
+
+  const [activePrompt, setActivePrompt] =
+    useState("");
 
   useEffect(() => {
     const storedHistory =
-      sessionStorage.getItem("ai-arena-history");
+      sessionStorage.getItem(
+        "ai-arena-history",
+      );
 
     const storedNextRound =
-      sessionStorage.getItem("ai-arena-next-round");
+      sessionStorage.getItem(
+        "ai-arena-next-round",
+      );
 
     if (storedHistory) {
       try {
         const parsed =
-          JSON.parse(storedHistory) as ProviderHistory;
+          JSON.parse(
+            storedHistory,
+          ) as ProviderHistory;
 
         if (
           parsed &&
@@ -128,40 +147,52 @@ export default function Home() {
         ) {
           setHistory(parsed);
 
-          const completedRounds = Math.max(
-            parsed.openai.filter(
-              (message) => message.role === "user",
-            ).length,
-            parsed.google.filter(
-              (message) => message.role === "user",
-            ).length,
-          );
+          const completedRounds =
+            Math.max(
+              parsed.openai.filter(
+                (message) =>
+                  message.role === "user",
+              ).length,
+              parsed.google.filter(
+                (message) =>
+                  message.role === "user",
+              ).length,
+            );
 
-          setCurrentRound(completedRounds);
+          setCurrentRound(
+            completedRounds,
+          );
         } else {
-          sessionStorage.removeItem("ai-arena-history");
+          sessionStorage.removeItem(
+            "ai-arena-history",
+          );
         }
       } catch {
-        sessionStorage.removeItem("ai-arena-history");
+        sessionStorage.removeItem(
+          "ai-arena-history",
+        );
       }
     }
 
     if (storedNextRound) {
-      const parsedNextRound = Number.parseInt(
-        storedNextRound,
-        10,
-      );
+      const parsed =
+        Number.parseInt(
+          storedNextRound,
+          10,
+        );
 
       if (
-        Number.isFinite(parsedNextRound) &&
-        parsedNextRound > 0
+        Number.isFinite(parsed) &&
+        parsed > 0
       ) {
-        setNextRound(parsedNextRound);
+        setNextRound(parsed);
       }
     }
   }, []);
 
-  async function handleSubmit(message: string) {
+  async function handleSubmit(
+    message: string,
+  ) {
     if (
       selectedProviders.length === 0 ||
       loading
@@ -174,7 +205,9 @@ export default function Home() {
     setLoading(true);
     setRoundState("active");
     setCurrentRound(roundNumber);
-    setNextRound(roundNumber + 1);
+    setNextRound(
+      roundNumber + 1,
+    );
     setActivePrompt(message);
     setResponses([]);
     setProviderErrors({});
@@ -184,89 +217,125 @@ export default function Home() {
       String(roundNumber + 1),
     );
 
-    const nextProviderState = {
+    const nextStates = {
       ...EMPTY_PROVIDER_STATE,
     };
 
     for (const provider of selectedProviders) {
-      nextProviderState[provider] = "thinking";
+      nextStates[provider] =
+        "thinking";
     }
 
-    setProviderRoundState(nextProviderState);
+    setProviderRoundState(
+      nextStates,
+    );
 
     const adapters = [
       openAIAdapter,
       googleAdapter,
     ].filter((adapter) =>
-      selectedProviders.includes(adapter.provider.id),
+      selectedProviders.includes(
+        adapter.provider.id,
+      ),
     );
 
-    const providerHistories = selectedProviders.reduce(
-      (result, provider) => {
-        result[provider] = history[provider];
-        return result;
-      },
-      {} as ProviderHistory,
-    );
+    const providerHistories =
+      selectedProviders.reduce(
+        (result, provider) => {
+          result[provider] =
+            history[provider];
 
-    const successfulResponses: AIResponse[] = [];
+          return result;
+        },
+        {} as ProviderHistory,
+      );
+
+    const successfulResponses: AIResponse[] =
+      [];
+
     const failedProviders: Partial<
       Record<AIProviderId, string>
     > = {};
 
     await Promise.all(
-      adapters.map(async (adapter) => {
-        const providerId = adapter.provider.id;
+      adapters.map(
+        async (adapter) => {
+          const providerId =
+            adapter.provider.id;
 
-        try {
-          const result = await runArena(
-            {
-              message,
-              history: providerHistories[providerId],
-            },
-            [adapter],
-          );
+          try {
+            const result =
+              await runArena(
+                {
+                  message,
+                  history:
+                    providerHistories[
+                      providerId
+                    ],
+                },
+                [adapter],
+              );
 
-          const response = result[0];
+            const response =
+              result[0];
 
-          if (!response) {
-            throw new Error(
-              "Provider returned no response.",
+            if (!response) {
+              throw new Error(
+                "Provider returned no response.",
+              );
+            }
+
+            successfulResponses.push(
+              response,
+            );
+
+            setResponses(
+              (current) => [
+                ...current,
+                response,
+              ],
+            );
+
+            setProviderRoundState(
+              (current) => ({
+                ...current,
+                [providerId]:
+                  "complete",
+              }),
+            );
+          } catch (error) {
+            const failure =
+              getFailureMessage(
+                error,
+              );
+
+            failedProviders[
+              providerId
+            ] = failure;
+
+            setProviderErrors(
+              (current) => ({
+                ...current,
+                [providerId]:
+                  failure,
+              }),
+            );
+
+            setProviderRoundState(
+              (current) => ({
+                ...current,
+                [providerId]:
+                  "failed",
+              }),
             );
           }
-
-          successfulResponses.push(response);
-
-          setResponses((current) => [
-            ...current,
-            response,
-          ]);
-
-          setProviderRoundState((current) => ({
-            ...current,
-            [providerId]: "complete",
-          }));
-        } catch (error) {
-          const failureMessage =
-            getFailureMessage(error);
-
-          failedProviders[providerId] =
-            failureMessage;
-
-          setProviderErrors((current) => ({
-            ...current,
-            [providerId]: failureMessage,
-          }));
-
-          setProviderRoundState((current) => ({
-            ...current,
-            [providerId]: "failed",
-          }));
-        }
-      }),
+        },
+      ),
     );
 
-    if (successfulResponses.length === 0) {
+    if (
+      successfulResponses.length === 0
+    ) {
       setRoundState("failed");
     } else if (
       successfulResponses.length <
@@ -277,46 +346,64 @@ export default function Home() {
       setRoundState("complete");
     }
 
-    if (successfulResponses.length > 0) {
+    if (
+      successfulResponses.length > 0
+    ) {
       recordUsage(
         successfulResponses.map(
-          (response) => response.provider,
+          (response) =>
+            response.provider,
         ),
       );
     }
 
-    setHistory((currentHistory) => {
-      if (successfulResponses.length === 0) {
-        return currentHistory;
-      }
+    setHistory(
+      (currentHistory) => {
+        if (
+          successfulResponses.length ===
+          0
+        ) {
+          return currentHistory;
+        }
 
-      const updatedHistory = {
-        ...currentHistory,
-      };
+        const updatedHistory = {
+          ...currentHistory,
+        };
 
-      for (const response of successfulResponses) {
-        updatedHistory[response.provider] = [
-          ...currentHistory[response.provider],
-          {
-            role: "user",
-            content: message,
-          },
-          {
-            role: "assistant",
-            content: response.content,
-          },
-        ];
-      }
+        for (const response of successfulResponses) {
+          updatedHistory[
+            response.provider
+          ] = [
+            ...currentHistory[
+              response.provider
+            ],
+            {
+              role: "user",
+              content: message,
+            },
+            {
+              role: "assistant",
+              content:
+                response.content,
+            },
+          ];
+        }
 
-      sessionStorage.setItem(
-        "ai-arena-history",
-        JSON.stringify(updatedHistory),
-      );
+        sessionStorage.setItem(
+          "ai-arena-history",
+          JSON.stringify(
+            updatedHistory,
+          ),
+        );
 
-      return updatedHistory;
-    });
+        return updatedHistory;
+      },
+    );
 
-    setProviderErrors(failedProviders);
+    setProviderErrors(
+      failedProviders,
+    );
+
     setLoading(false);
   }
 
@@ -331,6 +418,7 @@ export default function Home() {
 
     setResponses([]);
     setProviderErrors({});
+
     setProviderRoundState({
       ...EMPTY_PROVIDER_STATE,
     });
@@ -340,37 +428,56 @@ export default function Home() {
     setNextRound(1);
     setActivePrompt("");
 
-    sessionStorage.removeItem("ai-arena-history");
+    sessionStorage.removeItem(
+      "ai-arena-history",
+    );
+
     sessionStorage.removeItem(
       "ai-arena-next-round",
     );
   }
 
-  const hasHistory = Object.values(history).some(
-    (providerHistory) =>
-      providerHistory.length > 0,
-  );
+  const hasHistory =
+    Object.values(history).some(
+      (providerHistory) =>
+        providerHistory.length > 0,
+    );
 
   const connectedCount = useMemo(
     () =>
-      Object.values(availableProviders).filter(
-        Boolean,
-      ).length,
+      Object.values(
+        availableProviders,
+      ).filter(Boolean).length,
     [availableProviders],
   );
 
-  const lineupCount = selectedProviders.length;
+  const lineupCount =
+    selectedProviders.length;
 
   let arenaStatus = "NO ENTRANTS";
 
   if (roundState === "active") {
-    arenaStatus = `ROUND ${formatRound(currentRound)} · LIVE`;
-  } else if (roundState === "partial") {
-    arenaStatus = `ROUND ${formatRound(currentRound)} · PARTIAL`;
-  } else if (roundState === "failed") {
-    arenaStatus = `ROUND ${formatRound(currentRound)} · FAILED`;
-  } else if (roundState === "complete") {
-    arenaStatus = `ROUND ${formatRound(currentRound)} · COMPLETE`;
+    arenaStatus = `ROUND ${formatRound(
+      currentRound,
+    )} · LIVE`;
+  } else if (
+    roundState === "partial"
+  ) {
+    arenaStatus = `ROUND ${formatRound(
+      currentRound,
+    )} · PARTIAL`;
+  } else if (
+    roundState === "failed"
+  ) {
+    arenaStatus = `ROUND ${formatRound(
+      currentRound,
+    )} · FAILED`;
+  } else if (
+    roundState === "complete"
+  ) {
+    arenaStatus = `ROUND ${formatRound(
+      currentRound,
+    )} · COMPLETE`;
   } else if (lineupCount === 1) {
     arenaStatus = "1 ENTRANT READY";
   } else if (lineupCount > 1) {
@@ -379,6 +486,17 @@ export default function Home() {
     arenaStatus = "LINEUP AVAILABLE";
   }
 
+  const statusClass =
+    roundState === "active"
+      ? "arena-roundbar__state--active"
+      : roundState === "complete"
+        ? "arena-roundbar__state--complete"
+        : roundState === "partial"
+          ? "arena-roundbar__state--partial"
+          : roundState === "failed"
+            ? "arena-roundbar__state--failed"
+            : "";
+
   const roundLabel = formatRound(
     currentRound > 0
       ? currentRound
@@ -386,280 +504,208 @@ export default function Home() {
   );
 
   return (
-    <main className="min-h-screen bg-[var(--background)] px-4 py-5 text-[var(--foreground)] sm:px-6 sm:py-8">
-      <div className="mx-auto flex w-full max-w-7xl flex-col">
-        <header className="border-y border-[var(--border)] py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
+    <main className="arena-page">
+      <div className="arena-shell">
+        <header className="arena-header">
+          <div className="arena-brand">
+            <span className="arena-brand__signal" />
 
-              <h1 className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-[0.08em] sm:text-3xl">
-                AI Arena
-              </h1>
+            <h1 className="arena-brand__name">
+              AI Arena
+            </h1>
 
-              <span className="hidden font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--foreground-subtle)] sm:inline">
-                Multi-model workspace
-              </span>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span className="hidden font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)] sm:inline">
-                V1.0.0 · BYOK
-              </span>
-
-              <Link
-                href="/guide"
-                className="border border-[var(--border)] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
-              >
-                Guide
-              </Link>
-            </div>
+            <span className="arena-brand__sub">
+              One prompt · multiple minds
+            </span>
           </div>
+
+          <Link
+            href="/guide"
+            className="arena-guide"
+          >
+            Guide
+          </Link>
         </header>
 
-        <div className="grid gap-8 py-8 lg:grid-cols-[15rem_minmax(0,1fr)]">
-          <aside className="lg:border-r lg:border-[var(--border)] lg:pr-6">
-            <div className="sticky top-6">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
-                  Your lineup
-                </p>
+        <div className="arena-roundbar">
+          <span className="arena-roundbar__round">
+            Round {roundLabel}
+          </span>
 
-                <span className="font-mono text-[9px] tabular-nums text-[var(--foreground-subtle)]">
-                  {lineupCount}/2
-                </span>
-              </div>
+          <span
+            className={`arena-roundbar__state ${statusClass}`}
+          >
+            {arenaStatus}
+          </span>
+        </div>
 
-              <ProviderSelector
-                selected={selectedProviders}
-                onChange={setSelectedProviders}
-                onAvailabilityChange={
-                  setAvailableProviders
-                }
-              />
+        <section className="arena-section arena-lineup">
+          <div className="arena-section__label">
+            <span>Lineup</span>
 
-              <div className="mt-6 border-t border-[var(--border)] pt-4">
-                <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">
-                  Arena status
-                </p>
+            <span className="arena-section__line" />
 
-                <div className="mt-3 flex items-center gap-2">
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      roundState === "failed"
-                        ? "bg-[var(--danger)]"
-                        : roundState === "partial"
-                          ? "bg-[var(--accent)]"
-                          : roundState === "active"
-                            ? "bg-[var(--cyan)] animate-pulse"
-                            : roundState === "complete"
-                              ? "bg-[var(--success)]"
-                              : "bg-[var(--foreground-subtle)]"
-                    }`}
-                  />
+            <span className="arena-section__meta">
+              {lineupCount}/2
+            </span>
+          </div>
 
-                  <p
-                    className={`font-mono text-[10px] uppercase tracking-[0.14em] ${
-                      roundState === "failed"
-                        ? "text-[var(--danger)]"
-                        : roundState === "partial"
-                          ? "text-[var(--accent)]"
-                          : roundState === "active"
-                            ? "text-[var(--cyan)]"
-                            : roundState === "complete"
-                              ? "text-[var(--success)]"
-                              : "text-[var(--foreground-muted)]"
-                    }`}
-                  >
-                    {arenaStatus}
+          <ProviderSelector
+            selected={
+              selectedProviders
+            }
+            onChange={
+              setSelectedProviders
+            }
+            onAvailabilityChange={
+              setAvailableProviders
+            }
+          />
+        </section>
+
+        <section className="arena-prompt-stage">
+          <div className="arena-prompt-heading">
+            <div>
+              <p className="arena-prompt-heading__eyebrow">
+                Round {roundLabel}
+              </p>
+
+              <h2 className="arena-prompt-heading__title">
+                Ask the Arena
+              </h2>
+            </div>
+
+            <p className="arena-prompt-heading__note">
+              Same prompt
+              <br />
+              Every entrant
+            </p>
+          </div>
+
+          <ChatInput
+            onSubmit={handleSubmit}
+            roundNumber={
+              currentRound > 0
+                ? currentRound
+                : nextRound
+            }
+            disabled={
+              loading ||
+              selectedProviders.length ===
+                0
+            }
+          />
+        </section>
+
+        <section
+          className={`arena-floor ${
+            roundState === "active"
+              ? "arena-floor--active"
+              : ""
+          }`}
+        >
+          <div className="arena-floor__bar">
+            <span className="arena-floor__label">
+              Arena floor
+            </span>
+
+            <span className="arena-floor__status">
+              {arenaStatus}
+            </span>
+          </div>
+
+          {!hasHistory &&
+            roundState === "idle" && (
+              <div className="arena-empty">
+                <div className="arena-empty__content">
+                  <div className="arena-empty__sigil">
+                    <span className="arena-empty__core" />
+                  </div>
+
+                  <p className="arena-empty__eyebrow">
+                    {lineupCount === 0
+                      ? "Awaiting entrants"
+                      : "Arena standing by"}
+                  </p>
+
+                  <h3 className="arena-empty__title">
+                    {lineupCount === 0
+                      ? "No round in progress"
+                      : `Ready for Round ${roundLabel}`}
+                  </h3>
+
+                  <p className="arena-empty__text">
+                    {lineupCount === 0
+                      ? "Connect a provider and place an entrant in the lineup."
+                      : "Write your prompt above. Entering the round activates the floor."}
                   </p>
                 </div>
               </div>
-            </div>
-          </aside>
-
-          <div className="min-w-0">
-            <section className="border border-[var(--border)] bg-[var(--surface)]">
-              <div className="flex flex-col border-b border-[var(--border)] px-5 py-5 sm:px-7">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--accent)]">
-                      Round {roundLabel}
-                    </p>
-
-                    <h2 className="mt-2 font-[family-name:var(--font-display)] text-4xl uppercase leading-none tracking-wide sm:text-6xl">
-                      Ask the Arena
-                    </h2>
-                  </div>
-
-                  <span className="hidden font-mono text-[9px] uppercase tracking-[0.15em] text-[var(--foreground-subtle)] sm:inline">
-                    Same prompt · Every entrant
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-4 sm:p-6">
-                <ChatInput
-                  onSubmit={handleSubmit}
-                  roundNumber={
-                    currentRound > 0
-                      ? currentRound
-                      : nextRound
-                  }
-                  disabled={
-                    loading ||
-                    selectedProviders.length === 0
-                  }
-                />
-              </div>
-            </section>
-
-            <section className="mt-8">
-              <div className="mb-4 flex items-center gap-3">
-                <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">
-                  Arena floor
-                </p>
-
-                <span className="h-px flex-1 bg-[var(--border)]" />
-
-                <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-muted)]">
-                  {arenaStatus}
-                </span>
-              </div>
-
-              {!hasHistory &&
-                roundState === "idle" && (
-                  <div className="relative overflow-hidden border border-[var(--border)] bg-[var(--surface)]">
-                    <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(245,165,36,0.06),transparent_45%)]" />
-
-                    <div className="relative flex min-h-[22rem] flex-col items-center justify-center px-6 py-12 text-center">
-                      <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-[var(--foreground-subtle)]">
-                        {connectedCount === 0
-                          ? "Awaiting lineup"
-                          : "Arena standing by"}
-                      </span>
-
-                      <div className="mt-5 flex items-center gap-3">
-                        <span
-                          className={`h-2.5 w-2.5 rounded-full ${
-                            lineupCount > 0
-                              ? "bg-[var(--success)]"
-                              : "bg-[var(--foreground-subtle)]"
-                          }`}
-                        />
-
-                        <span className="font-[family-name:var(--font-display)] text-3xl uppercase tracking-wide sm:text-4xl">
-                          {lineupCount > 0
-                            ? `Ready for Round ${roundLabel}`
-                            : "No entrants selected"}
-                        </span>
-                      </div>
-
-                      <p className="mt-4 max-w-lg text-sm leading-7 text-[var(--foreground-muted)]">
-                        {lineupCount > 0
-                          ? "Your lineup is standing by. The next prompt starts the round."
-                          : "Connect a provider in the lineup, select an entrant, and the Arena becomes live."}
-                      </p>
-
-                      <div className="mt-8 grid w-full max-w-xl gap-2 sm:grid-cols-2">
-                        {selectedProviders.map(
-                          (providerId, index) => (
-                            <div
-                              key={providerId}
-                              className="border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 text-left"
-                            >
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                                  Entrant {index + 1}
-                                </span>
-
-                                <span
-                                  className={`h-1.5 w-1.5 rounded-full ${
-                                    providerId === "google"
-                                      ? "bg-[var(--magenta)]"
-                                      : "bg-[var(--cyan)]"
-                                  }`}
-                                />
-                              </div>
-
-                              <p className="mt-2 font-[family-name:var(--font-display)] text-xl uppercase tracking-wide">
-                                {providerId === "google"
-                                  ? "Gemini"
-                                  : "ChatGPT"}
-                              </p>
-                            </div>
-                          ),
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              {(hasHistory ||
-                loading ||
-                roundState !== "idle") && (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {selectedProviders.map(
-                    (providerId) => (
-                      <ResponseCard
-                        key={providerId}
-                        providerId={providerId}
-                        messages={
-                          history[providerId]
-                        }
-                        latestResponse={responses.find(
-                          (response) =>
-                            response.provider ===
-                            providerId,
-                        )}
-                        status={
-                          providerRoundState[
-                            providerId
-                          ]
-                        }
-                        roundNumber={
-                          currentRound
-                        }
-                        currentPrompt={
-                          activePrompt
-                        }
-                        error={
-                          providerErrors[
-                            providerId
-                          ]
-                        }
-                      />
-                    ),
-                  )}
-                </div>
-              )}
-            </section>
-
-            {(hasHistory ||
-              roundState !== "idle") && (
-              <div className="mt-6 flex items-center justify-between border-t border-[var(--border)] pt-4">
-                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                  {hasHistory
-                    ? `${currentRound} ${
-                        currentRound === 1
-                          ? "round"
-                          : "rounds"
-                      } recorded`
-                    : "No completed rounds"}
-                </p>
-
-                <button
-                  type="button"
-                  onClick={clearArena}
-                  disabled={loading}
-                  className="border border-[var(--border)] px-4 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-muted)] hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:opacity-40"
-                >
-                  Clear Arena
-                </button>
-              </div>
             )}
-          </div>
-        </div>
+
+          {(hasHistory ||
+            loading ||
+            roundState !== "idle") && (
+            <div className="arena-result-grid">
+              {selectedProviders.map(
+                (providerId) => (
+                  <ResponseCard
+                    key={providerId}
+                    providerId={providerId}
+                    messages={
+                      history[providerId]
+                    }
+                    latestResponse={responses.find(
+                      (response) =>
+                        response.provider ===
+                        providerId,
+                    )}
+                    status={
+                      providerRoundState[
+                        providerId
+                      ]
+                    }
+                    roundNumber={
+                      currentRound
+                    }
+                    currentPrompt={
+                      activePrompt
+                    }
+                    error={
+                      providerErrors[
+                        providerId
+                      ]
+                    }
+                  />
+                ),
+              )}
+            </div>
+          )}
+        </section>
+
+        {(hasHistory ||
+          roundState !== "idle") && (
+          <footer className="arena-footer">
+            <span className="arena-footer__meta">
+              {hasHistory
+                ? `${currentRound} ${
+                    currentRound === 1
+                      ? "round"
+                      : "rounds"
+                  } recorded`
+                : "No completed rounds"}
+            </span>
+
+            <button
+              type="button"
+              onClick={clearArena}
+              disabled={loading}
+              className="arena-clear"
+            >
+              Clear Arena
+            </button>
+          </footer>
+        )}
       </div>
     </main>
   );
