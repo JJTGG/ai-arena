@@ -13,23 +13,20 @@ const STORAGE_KEYS: Record<Provider, string> = {
 const PROVIDERS: {
   id: Provider;
   name: string;
-  description: string;
+  shortName: string;
   accent: "cyan" | "magenta";
-  keyUrl: string;
 }[] = [
   {
     id: "openai",
     name: "ChatGPT",
-    description: "OpenAI API",
+    shortName: "GPT",
     accent: "cyan",
-    keyUrl: "https://platform.openai.com/api-keys",
   },
   {
     id: "google",
     name: "Gemini",
-    description: "Google AI",
+    shortName: "GEM",
     accent: "magenta",
-    keyUrl: "https://aistudio.google.com/app/apikey",
   },
 ];
 
@@ -46,14 +43,19 @@ export default function ProviderSelector({
   onChange,
   onAvailabilityChange,
 }: ProviderSelectorProps) {
-  const [available, setAvailable] = useState<Record<Provider, boolean>>({
+  const [available, setAvailable] = useState<
+    Record<Provider, boolean>
+  >({
     openai: false,
     google: false,
   });
 
-  const [expanded, setExpanded] = useState<Provider | null>(null);
+  const [expanded, setExpanded] =
+    useState<Provider | null>(null);
 
-  const [keys, setKeys] = useState<Record<Provider, string>>({
+  const [keys, setKeys] = useState<
+    Record<Provider, string>
+  >({
     openai: "",
     google: "",
   });
@@ -61,10 +63,14 @@ export default function ProviderSelector({
   function readAvailability() {
     const next = {
       openai: Boolean(
-        localStorage.getItem(STORAGE_KEYS.openai),
+        localStorage.getItem(
+          STORAGE_KEYS.openai,
+        ),
       ),
       google: Boolean(
-        localStorage.getItem(STORAGE_KEYS.google),
+        localStorage.getItem(
+          STORAGE_KEYS.google,
+        ),
       ),
     };
 
@@ -78,19 +84,23 @@ export default function ProviderSelector({
     const next = readAvailability();
 
     if (selected.length === 0) {
-      const connectedProviders = PROVIDERS.filter(
-        (provider) => next[provider.id],
-      ).map((provider) => provider.id);
+      const connectedProviders =
+        PROVIDERS.filter(
+          (provider) => next[provider.id],
+        ).map((provider) => provider.id);
 
       if (connectedProviders.length > 0) {
         onChange(connectedProviders);
       }
     }
-    // Selection is intentionally only auto-populated during initial mount.
+
+    // Initial hydration only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function toggleSelection(provider: Provider) {
+  function toggleSelection(
+    provider: Provider,
+  ) {
     if (!available[provider]) {
       setExpanded(provider);
       return;
@@ -98,12 +108,18 @@ export default function ProviderSelector({
 
     if (selected.includes(provider)) {
       onChange(
-        selected.filter((item) => item !== provider),
+        selected.filter(
+          (item) => item !== provider,
+        ),
       );
+
       return;
     }
 
-    onChange([...selected, provider]);
+    onChange([
+      ...selected,
+      provider,
+    ]);
   }
 
   function saveKey(provider: Provider) {
@@ -113,7 +129,10 @@ export default function ProviderSelector({
       return;
     }
 
-    localStorage.setItem(STORAGE_KEYS[provider], key);
+    localStorage.setItem(
+      STORAGE_KEYS[provider],
+      key,
+    );
 
     setKeys((current) => ({
       ...current,
@@ -122,16 +141,22 @@ export default function ProviderSelector({
 
     const next = readAvailability();
 
+    setAvailable(next);
+
     if (!selected.includes(provider)) {
-      onChange([...selected, provider]);
+      onChange([
+        ...selected,
+        provider,
+      ]);
     }
 
-    setAvailable(next);
     setExpanded(null);
   }
 
   function removeKey(provider: Provider) {
-    localStorage.removeItem(STORAGE_KEYS[provider]);
+    localStorage.removeItem(
+      STORAGE_KEYS[provider],
+    );
 
     setKeys((current) => ({
       ...current,
@@ -144,7 +169,9 @@ export default function ProviderSelector({
 
     if (selected.includes(provider)) {
       onChange(
-        selected.filter((item) => item !== provider),
+        selected.filter(
+          (item) => item !== provider,
+        ),
       );
     }
 
@@ -152,183 +179,183 @@ export default function ProviderSelector({
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="flex gap-2 lg:flex-col">
       {PROVIDERS.map((provider) => {
-        const isSelected = selected.includes(provider.id);
-        const hasKey = available[provider.id];
-        const isExpanded = expanded === provider.id;
+        const isSelected =
+          selected.includes(provider.id);
 
-        const accentClass =
+        const hasKey =
+          available[provider.id];
+
+        const isExpanded =
+          expanded === provider.id;
+
+        const accent =
+          provider.accent === "cyan"
+            ? "var(--cyan)"
+            : "var(--magenta)";
+
+        const accentText =
           provider.accent === "cyan"
             ? "text-[var(--cyan)]"
             : "text-[var(--magenta)]";
 
-        const borderClass =
-          provider.accent === "cyan"
-            ? "border-[var(--cyan)]/60"
-            : "border-[var(--magenta)]/60";
-
         return (
-          <article
+          <div
             key={provider.id}
-            className={`min-w-0 border bg-[var(--surface)] transition ${
+            className={`min-w-0 flex-1 border bg-[var(--surface)] transition lg:flex-none ${
               isSelected
-                ? borderClass
+                ? provider.accent === "cyan"
+                  ? "border-[var(--cyan)]/60"
+                  : "border-[var(--magenta)]/60"
                 : "border-[var(--border)]"
             }`}
           >
             <button
               type="button"
-              onClick={() => toggleSelection(provider.id)}
               aria-pressed={isSelected}
-              className="w-full p-5 text-left transition hover:bg-[var(--surface-hover)]"
+              onClick={() =>
+                toggleSelection(
+                  provider.id,
+                )
+              }
+              className="group w-full p-4 text-left hover:bg-[var(--surface-hover)]"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`h-2 w-2 rounded-full ${
-                        provider.accent === "cyan"
-                          ? "bg-[var(--cyan)]"
-                          : "bg-[var(--magenta)]"
-                      }`}
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor:
+                          accent,
+                      }}
                     />
 
-                    <h2 className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wide">
+                    <span className="truncate font-[family-name:var(--font-display)] text-lg uppercase tracking-wide">
                       {provider.name}
-                    </h2>
+                    </span>
                   </div>
 
-                  <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                    {provider.description}
+                  <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.15em] text-[var(--foreground-subtle)]">
+                    {hasKey
+                      ? "Connected"
+                      : "Needs connection"}
                   </p>
                 </div>
 
                 <span
-                  className={`shrink-0 font-mono text-[9px] uppercase tracking-[0.15em] ${
-                    hasKey
-                      ? "text-[var(--success)]"
+                  className={`font-mono text-[8px] uppercase tracking-[0.14em] ${
+                    isSelected
+                      ? accentText
                       : "text-[var(--foreground-subtle)]"
                   }`}
                 >
-                  {hasKey ? "Connected" : "Not connected"}
-                </span>
-              </div>
-
-              <div className="mt-5 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
-                <span
-                  className={`font-mono text-[9px] uppercase tracking-[0.16em] ${
-                    isSelected
-                      ? accentClass
-                      : "text-[var(--foreground-muted)]"
-                  }`}
-                >
                   {isSelected
-                    ? "In lineup"
+                    ? "IN"
                     : hasKey
-                      ? "Add to lineup"
-                      : "Connect first"}
-                </span>
-
-                <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">
-                  {isSelected ? "Selected" : "Select"}
+                      ? "ADD"
+                      : "CONNECT"}
                 </span>
               </div>
             </button>
 
-            <div className="flex items-center justify-between border-t border-[var(--border)] px-5 py-3">
-              {hasKey ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setExpanded(
-                      isExpanded ? null : provider.id,
-                    )
-                  }
-                  className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-muted)] transition hover:text-[var(--foreground)]"
-                >
-                  {isExpanded ? "Close connection" : "Manage key"}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setExpanded(provider.id)}
-                  className={`font-mono text-[9px] uppercase tracking-[0.16em] ${accentClass} transition hover:opacity-80`}
-                >
-                  Connect →
-                </button>
-              )}
-
-              <a
-                href={provider.keyUrl}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(event) => event.stopPropagation()}
-                className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--foreground-subtle)] transition hover:text-[var(--foreground)]"
+            <div className="border-t border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() =>
+                  setExpanded(
+                    isExpanded
+                      ? null
+                      : provider.id,
+                  )
+                }
+                className="w-full px-4 py-2.5 text-left font-mono text-[8px] uppercase tracking-[0.15em] text-[var(--foreground-subtle)] hover:bg-[var(--surface-raised)] hover:text-[var(--foreground-muted)]"
               >
-                Get API key ↗
-              </a>
-            </div>
+                {isExpanded
+                  ? "Close"
+                  : hasKey
+                    ? "Manage key"
+                    : "Connect"}
+              </button>
 
-            {isExpanded && (
-              <div className="border-t border-[var(--border)] bg-[var(--surface-raised)] p-5">
-                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                  {hasKey
-                    ? "Replace or remove the stored key"
-                    : "Add your API key"}
-                </p>
+              {isExpanded && (
+                <div className="border-t border-[var(--border)] bg-[var(--surface-raised)] p-4">
+                  <p className="font-mono text-[8px] uppercase tracking-[0.15em] text-[var(--foreground-subtle)]">
+                    {hasKey
+                      ? `Manage ${provider.name} key`
+                      : `Connect ${provider.name}`}
+                  </p>
 
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <input
-                    type="password"
-                    value={keys[provider.id]}
-                    onChange={(event) =>
-                      setKeys((current) => ({
-                        ...current,
-                        [provider.id]: event.target.value,
-                      }))
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        saveKey(provider.id);
+                  <div className="mt-3">
+                    <input
+                      type="password"
+                      value={
+                        keys[provider.id]
                       }
-                    }}
-                    placeholder={
-                      hasKey
-                        ? "Enter a replacement key"
-                        : "Paste API key"
-                    }
-                    className="min-w-0 flex-1 border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--foreground-subtle)] focus:border-[var(--accent)]"
-                  />
+                      onChange={(event) =>
+                        setKeys(
+                          (current) => ({
+                            ...current,
+                            [provider.id]:
+                              event.target.value,
+                          }),
+                        )
+                      }
+                      onKeyDown={(event) => {
+                        if (
+                          event.key ===
+                          "Enter"
+                        ) {
+                          saveKey(
+                            provider.id,
+                          );
+                        }
+                      }}
+                      placeholder={
+                        hasKey
+                          ? "Replacement key"
+                          : "Paste API key"
+                      }
+                      aria-label={`${provider.name} API key`}
+                      className="w-full border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-xs text-[var(--foreground)] outline-none placeholder:text-[var(--foreground-subtle)] focus:border-[var(--accent)]"
+                    />
 
-                  <button
-                    type="button"
-                    onClick={() => saveKey(provider.id)}
-                    disabled={!keys[provider.id].trim()}
-                    className="border border-[var(--accent)] bg-[var(--accent)] px-4 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--accent-foreground)] transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Save key
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        saveKey(
+                          provider.id,
+                        )
+                      }
+                      disabled={
+                        !keys[
+                          provider.id
+                        ].trim()
+                      }
+                      className="mt-2 w-full border border-[var(--accent)] bg-[var(--accent)] px-3 py-2.5 font-mono text-[8px] uppercase tracking-[0.14em] text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] disabled:opacity-40"
+                    >
+                      Save key
+                    </button>
+                  </div>
+
+                  {hasKey && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        removeKey(
+                          provider.id,
+                        )
+                      }
+                      className="mt-3 font-mono text-[8px] uppercase tracking-[0.14em] text-[var(--danger)] hover:opacity-80"
+                    >
+                      Remove key
+                    </button>
+                  )}
                 </div>
-
-                {hasKey && (
-                  <button
-                    type="button"
-                    onClick={() => removeKey(provider.id)}
-                    className="mt-3 font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--danger)] transition hover:opacity-80"
-                  >
-                    Remove key
-                  </button>
-                )}
-
-                <p className="mt-4 text-xs leading-5 text-[var(--foreground-subtle)]">
-                  AI Arena V1 stores this key in this browser and uses it
-                  directly for provider requests. It is not uploaded to an
-                  AI Arena account.
-                </p>
-              </div>
-            )}
-          </article>
+              )}
+            </div>
+          </div>
         );
       })}
     </div>
