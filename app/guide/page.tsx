@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import styles from "./guide.module.css";
 
 export const metadata: Metadata = {
   title: "Guide · AI Arena",
@@ -20,84 +21,75 @@ const providers = [
   },
 ];
 
+const flowSteps = [
+  "Connect a provider",
+  "Add it to the lineup",
+  "Write one prompt",
+  "Enter the Arena",
+  "Compare the round",
+  "Continue the conversation",
+];
+
 export default function GuidePage() {
   return (
-    <main className="min-h-screen bg-[var(--background)] px-4 py-6 text-[var(--foreground)] sm:px-6 sm:py-10">
-      <div className="mx-auto w-full max-w-5xl">
-        <header className="border-b border-[var(--border)] pb-8">
-          <div className="flex items-center justify-between gap-4">
-            <Link
-              href="/"
-              className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--foreground-muted)] transition hover:text-[var(--foreground)]"
-            >
-              ← Back to Arena
-            </Link>
+    <main className={styles.guidePage}>
+      <div className={styles.guideShell}>
+        <header className={styles.header}>
+          <Link href="/" className={styles.backLink}>
+            ← Back to Arena
+          </Link>
 
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
-              BYOK GUIDE
-            </span>
-          </div>
-
-          <p className="mt-10 font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--accent)]">
-            Start here
-          </p>
-
-          <h1 className="mt-3 font-[family-name:var(--font-display)] text-5xl uppercase leading-none tracking-wide sm:text-7xl">
-            How AI Arena Works
-          </h1>
-
-          <p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--foreground-muted)]">
-            Bring your own API key, choose your lineup, ask one question,
-            and compare the responses.
-          </p>
+          <span className={styles.headerTag}>BYOK · GUIDE</span>
         </header>
 
-        <div className="grid gap-10 py-10 lg:grid-cols-[1.4fr_0.8fr]">
-          <div className="space-y-10">
-            <section>
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
-                01 · What is BYOK?
-              </p>
+        <section className={styles.hero}>
+          <p className={styles.heroEyebrow}>Start here</p>
 
-              <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl uppercase tracking-wide">
-                Bring Your Own Key
-              </h2>
+          <h1 className={styles.heroTitle}>How AI Arena Works</h1>
 
-              <div className="mt-4 space-y-4 text-sm leading-7 text-[var(--foreground-muted)]">
+          <p className={styles.heroText}>
+            AI Arena lets you bring your own provider access, build a lineup,
+            send one prompt, and inspect the resulting answers side by side.
+          </p>
+        </section>
+
+        <div className={styles.contentGrid}>
+          <div className={styles.content}>
+            <section className={styles.section}>
+              <span className={styles.sectionIndex}>01 · BYOK</span>
+
+              <h2 className={styles.sectionTitle}>Bring Your Own Key</h2>
+
+              <div className={styles.sectionBody}>
                 <p>
-                  BYOK means Bring Your Own Key. AI Arena does not provide
-                  shared provider credits. Instead, you connect your own API
-                  access and the selected provider handles your request.
+                  BYOK means <strong>Bring Your Own Key</strong>. AI Arena does
+                  not provide shared provider credits for V1. Instead, the
+                  provider access comes from a key you connect in your browser.
                 </p>
 
                 <p>
-                  Your provider account is therefore still responsible for
-                  whatever access, quota, billing, or usage limits apply to
-                  your API account.
+                  The selected provider handles the request. Your provider
+                  account therefore remains responsible for the access, quota,
+                  billing, and usage limits that apply to that account.
                 </p>
               </div>
             </section>
 
-            <section>
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
-                02 · Choose a provider
-              </p>
+            <section className={styles.section}>
+              <span className={styles.sectionIndex}>
+                02 · PROVIDERS
+              </span>
 
-              <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl uppercase tracking-wide">
-                Start with your own access
+              <h2 className={styles.sectionTitle}>
+                Choose Your Providers
               </h2>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className={styles.providerGrid}>
                 {providers.map((provider) => (
-                  <div
-                    key={provider.name}
-                    className="border border-[var(--border)] bg-[var(--surface)] p-5"
-                  >
-                    <p className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wide">
-                      {provider.name}
-                    </p>
+                  <div className={styles.providerCard} key={provider.name}>
+                    <p className={styles.providerName}>{provider.name}</p>
 
-                    <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
+                    <p className={styles.providerType}>
                       {provider.description}
                     </p>
 
@@ -105,7 +97,7 @@ export default function GuidePage() {
                       href={provider.keyUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-5 inline-block font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--accent)] transition hover:text-[var(--accent-hover)]"
+                      className={styles.providerLink}
                     >
                       Open key management ↗
                     </a>
@@ -114,206 +106,254 @@ export default function GuidePage() {
               </div>
             </section>
 
-            <section>
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
-                03 · Get your API key
-              </p>
+            <section className={styles.section}>
+              <span className={styles.sectionIndex}>
+                03 · API KEYS
+              </span>
 
-              <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl uppercase tracking-wide">
-                Create or copy a key
+              <h2 className={styles.sectionTitle}>
+                Create or Copy a Key
               </h2>
 
-              <div className="mt-5 space-y-5">
-                <div className="border border-[var(--border)] bg-[var(--surface)] p-5">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                    OpenAI
-                  </p>
+              <div className={styles.setupStack}>
+                <div className={styles.setupBlock}>
+                  <div className={styles.setupHeader}>
+                    <span className={styles.setupProvider}>OpenAI</span>
+                    <span className={styles.setupMarker}>Provider setup</span>
+                  </div>
 
-                  <ol className="mt-4 space-y-3 text-sm leading-6 text-[var(--foreground-muted)]">
-                    <li>1. Sign in to the OpenAI API platform.</li>
-                    <li>2. Open the API keys area.</li>
-                    <li>3. Create a key for the project you intend to use.</li>
-                    <li>4. Copy the key and keep it private.</li>
+                  <ol className={styles.setupList}>
+                    <li className={styles.setupItem}>
+                      <span className={styles.setupNumber}>01</span>
+                      <span>Sign in to the OpenAI API platform.</span>
+                    </li>
+
+                    <li className={styles.setupItem}>
+                      <span className={styles.setupNumber}>02</span>
+                      <span>Open the API keys area.</span>
+                    </li>
+
+                    <li className={styles.setupItem}>
+                      <span className={styles.setupNumber}>03</span>
+                      <span>
+                        Create a key for the project you intend to use.
+                      </span>
+                    </li>
+
+                    <li className={styles.setupItem}>
+                      <span className={styles.setupNumber}>04</span>
+                      <span>Copy the key and keep it private.</span>
+                    </li>
                   </ol>
                 </div>
 
-                <div className="border border-[var(--border)] bg-[var(--surface)] p-5">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                    Gemini
-                  </p>
+                <div className={styles.setupBlock}>
+                  <div className={styles.setupHeader}>
+                    <span className={styles.setupProvider}>Gemini</span>
+                    <span className={styles.setupMarker}>Provider setup</span>
+                  </div>
 
-                  <ol className="mt-4 space-y-3 text-sm leading-6 text-[var(--foreground-muted)]">
-                    <li>1. Sign in to Google AI Studio.</li>
-                    <li>2. Open the API keys area.</li>
-                    <li>3. Create or select the key you want to use.</li>
-                    <li>4. Copy the key and keep it private.</li>
+                  <ol className={styles.setupList}>
+                    <li className={styles.setupItem}>
+                      <span className={styles.setupNumber}>01</span>
+                      <span>Sign in to Google AI Studio.</span>
+                    </li>
+
+                    <li className={styles.setupItem}>
+                      <span className={styles.setupNumber}>02</span>
+                      <span>Open the API keys area.</span>
+                    </li>
+
+                    <li className={styles.setupItem}>
+                      <span className={styles.setupNumber}>03</span>
+                      <span>
+                        Create or select the key you want to use.
+                      </span>
+                    </li>
+
+                    <li className={styles.setupItem}>
+                      <span className={styles.setupNumber}>04</span>
+                      <span>Copy the key and keep it private.</span>
+                    </li>
                   </ol>
                 </div>
               </div>
             </section>
 
-            <section>
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
-                04 · Connect it
-              </p>
+            <section className={styles.section}>
+              <span className={styles.sectionIndex}>
+                04 · CONNECT
+              </span>
 
-              <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl uppercase tracking-wide">
-                Add the key to your lineup
+              <h2 className={styles.sectionTitle}>
+                Add a Provider to Your Lineup
               </h2>
 
-              <div className="mt-4 space-y-4 text-sm leading-7 text-[var(--foreground-muted)]">
+              <div className={styles.sectionBody}>
                 <p>
-                  Return to AI Arena and open the provider slot you want to
-                  connect. Paste your API key, save it, and the provider becomes
+                  Return to the Arena and open the provider slot you want to
+                  connect. Paste the API key, save it, and that provider becomes
                   available for your lineup.
                 </p>
 
                 <p>
-                  You can connect one provider or both. You do not need two
-                  entrants to use the Arena.
+                  You can connect one provider or both. The Arena does not
+                  require a two-provider matchup.
+                </p>
+              </div>
+
+              <div className={styles.note}>
+                <p className={styles.noteLabel}>Browser storage</p>
+
+                <p className={styles.noteText}>
+                  AI Arena V1 stores your connected key in your browser and
+                  uses it from the browser. It is not attached to an AI Arena
+                  account.
                 </p>
               </div>
             </section>
 
-            <section>
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
-                05 · Enter the Arena
-              </p>
+            <section className={styles.section}>
+              <span className={styles.sectionIndex}>
+                05 · THE ARENA
+              </span>
 
-              <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl uppercase tracking-wide">
-                One prompt. One round.
+              <h2 className={styles.sectionTitle}>
+                One Prompt. One Round.
               </h2>
 
-              <div className="mt-5 border border-[var(--border)] bg-[var(--surface)]">
-                <div className="border-b border-[var(--border)] px-5 py-4">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">
-                    Example
-                  </p>
+              <div className={styles.example}>
+                <div className={styles.examplePrompt}>
+                  <p className={styles.exampleLabel}>Example prompt</p>
 
-                  <p className="mt-2 text-sm text-[var(--foreground)]">
+                  <p className={styles.exampleQuestion}>
                     “Explain the trade-offs of building a system this way.”
                   </p>
                 </div>
 
-                <div className="grid md:grid-cols-2">
-                  <div className="border-b border-[var(--border)] p-5 md:border-b-0 md:border-r">
-                    <p className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wide">
-                      ChatGPT
-                    </p>
+                <div className={styles.exampleResults}>
+                  <div className={styles.exampleResult}>
+                    <p className={styles.exampleResultName}>ChatGPT</p>
 
-                    <p className="mt-3 text-sm leading-6 text-[var(--foreground-muted)]">
-                      Response from your OpenAI API access.
+                    <p className={styles.exampleResultText}>
+                      Response generated through your OpenAI API access.
                     </p>
                   </div>
 
-                  <div className="p-5">
-                    <p className="font-[family-name:var(--font-display)] text-2xl uppercase tracking-wide">
-                      Gemini
-                    </p>
+                  <div className={styles.exampleResult}>
+                    <p className={styles.exampleResultName}>Gemini</p>
 
-                    <p className="mt-3 text-sm leading-6 text-[var(--foreground-muted)]">
-                      Response from your Google AI access.
+                    <p className={styles.exampleResultText}>
+                      Response generated through your Google AI access.
                     </p>
                   </div>
                 </div>
               </div>
+
+              <div className={styles.flow}>
+                {flowSteps.map((step, index) => (
+                  <div className={styles.flowStep} key={step}>
+                    <span className={styles.flowStepNumber}>
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+
+                    <span className={styles.flowStepText}>{step}</span>
+                  </div>
+                ))}
+              </div>
             </section>
 
-            <section>
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
-                06 · Costs, quotas, and limits
-              </p>
+            <section className={styles.section}>
+              <span className={styles.sectionIndex}>
+                06 · USAGE
+              </span>
 
-              <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl uppercase tracking-wide">
-                Your provider account still matters
+              <h2 className={styles.sectionTitle}>
+                Your Provider Account Still Matters
               </h2>
 
-              <div className="mt-4 space-y-4 text-sm leading-7 text-[var(--foreground-muted)]">
+              <div className={styles.sectionBody}>
                 <p>
-                  AI Arena does not control provider pricing, quotas, or
-                  account billing. A valid API key can still fail when the
+                  AI Arena does not control provider pricing, quotas, account
+                  billing, or API eligibility.
+                </p>
+
+                <p>
+                  A key can be valid and a request can still fail when the
                   provider account has reached a limit or does not have the
                   required API access.
                 </p>
 
                 <p>
-                  Also note that a ChatGPT subscription and OpenAI API usage
-                  are billed separately.
+                  ChatGPT subscriptions and OpenAI API usage are also separate
+                  products with separate usage arrangements.
                 </p>
               </div>
             </section>
 
-            <section>
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
-                07 · Key safety
-              </p>
+            <section className={styles.section}>
+              <span className={styles.sectionIndex}>
+                07 · KEY SAFETY
+              </span>
 
-              <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl uppercase tracking-wide">
-                Treat your key like a credential
+              <h2 className={styles.sectionTitle}>
+                Treat Your Key Like a Credential
               </h2>
 
-              <div className="mt-4 space-y-4 text-sm leading-7 text-[var(--foreground-muted)]">
+              <div className={styles.sectionBody}>
                 <p>
                   Do not paste your API key into chat, source code, GitHub,
                   screenshots, or messages.
                 </p>
 
                 <p>
-                  AI Arena V1 intentionally uses client-side BYOK. The key is
-                  stored in your browser and used from your browser. That means
-                  it is not uploaded to an AI Arena account, but it also means
-                  this is not the same isolation you would get from server-side
-                  secret management.
+                  Use an appropriate key for this browser-based BYOK setup.
+                  Restrict it where the provider supports restrictions, and
+                  revoke or replace it when you believe it has been exposed.
                 </p>
+              </div>
 
-                <p>
-                  Use an appropriate API key for this setup, keep it
-                  restricted where the provider supports restrictions, and
-                  revoke or replace it if you believe it has been exposed.
+              <div className={styles.note}>
+                <p className={styles.noteLabel}>Important</p>
+
+                <p className={styles.noteText}>
+                  Client-side BYOK is intentionally simple for V1, but it is
+                  not equivalent to server-side secret management.
                 </p>
               </div>
             </section>
           </div>
 
-          <aside className="lg:sticky lg:top-8 lg:self-start">
-            <div className="border border-[var(--border)] bg-[var(--surface)] p-5">
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--accent)]">
-                V1 flow
-              </p>
+          <aside className={styles.rail}>
+            <p className={styles.railLabel}>V1 flow</p>
 
-              <div className="mt-5 space-y-4">
-                {[
-                  "Connect a provider",
-                  "Add it to the lineup",
-                  "Write one prompt",
-                  "Enter the Arena",
-                  "Compare the round",
-                  "Continue the conversation",
-                ].map((step, index) => (
-                  <div
-                    key={step}
-                    className="flex gap-3"
-                  >
-                    <span className="font-mono text-[9px] text-[var(--foreground-subtle)]">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
+            <div className={styles.railSteps}>
+              {flowSteps.map((step, index) => (
+                <div className={styles.railStep} key={step}>
+                  <span className={styles.railStepNumber}>
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
 
-                    <p className="text-sm text-[var(--foreground-muted)]">
-                      {step}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <Link
-                href="/"
-                className="mt-7 block border border-[var(--accent)] px-4 py-3 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent)] transition hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
-              >
-                Enter the Arena →
-              </Link>
+                  <span className={styles.railStepText}>{step}</span>
+                </div>
+              ))}
             </div>
+
+            <Link href="/" className={styles.railAction}>
+              Enter the Arena →
+            </Link>
           </aside>
         </div>
+
+        <footer className={styles.footer}>
+          <span className={styles.footerText}>
+            AI Arena · V1 · BYOK
+          </span>
+
+          <Link href="/" className={styles.footerLink}>
+            Back to Arena →
+          </Link>
+        </footer>
       </div>
     </main>
   );
