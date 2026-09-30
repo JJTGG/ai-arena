@@ -12,7 +12,7 @@ type ProviderRoundState =
   | "complete"
   | "failed";
 
-interface ResponseCardProps {
+type ResponseCardProps = {
   providerId: AIProviderId;
   messages: AIMessage[];
   latestResponse?: AIResponse;
@@ -20,25 +20,21 @@ interface ResponseCardProps {
   roundNumber: number;
   currentPrompt: string;
   error?: string;
-}
+};
 
-function getProviderMeta(providerId: AIProviderId) {
+function getProviderMeta(
+  providerId: AIProviderId,
+) {
   if (providerId === "google") {
     return {
       name: "Gemini",
       accent: "magenta" as const,
-      accentText: "text-[var(--magenta)]",
-      accentBg: "bg-[var(--magenta)]",
-      accentBorder: "border-[var(--magenta)]/60",
     };
   }
 
   return {
     name: "ChatGPT",
     accent: "cyan" as const,
-    accentText: "text-[var(--cyan)]",
-    accentBg: "bg-[var(--cyan)]",
-    accentBorder: "border-[var(--cyan)]/60",
   };
 }
 
@@ -48,7 +44,10 @@ function getLastMessage(
 ) {
   return [...messages]
     .reverse()
-    .find((message) => message.role === role);
+    .find(
+      (message) =>
+        message.role === role,
+    );
 }
 
 export default function ResponseCard({
@@ -60,237 +59,178 @@ export default function ResponseCard({
   currentPrompt,
   error,
 }: ResponseCardProps) {
-  const provider = getProviderMeta(providerId);
+  const provider =
+    getProviderMeta(
+      providerId,
+    );
 
-  const lastHistoricalPrompt = getLastMessage(
-    messages,
-    "user",
-  );
+  const lastPrompt =
+    getLastMessage(
+      messages,
+      "user",
+    );
 
-  const lastHistoricalResponse = getLastMessage(
-    messages,
-    "assistant",
-  );
+  const lastResponse =
+    getLastMessage(
+      messages,
+      "assistant",
+    );
 
-  const displayedPrompt =
-    status === "idle"
-      ? lastHistoricalPrompt?.content
-      : currentPrompt || lastHistoricalPrompt?.content;
+  const prompt =
+    currentPrompt ||
+    lastPrompt?.content ||
+    "";
 
-  const displayedResponse =
-    latestResponse?.content ??
-    lastHistoricalResponse?.content;
+  const response =
+    latestResponse?.content ||
+    lastResponse?.content ||
+    "";
 
   const olderMessages =
     messages.length > 2
       ? messages.slice(0, -2)
       : [];
 
+  const laneClass = `arena-response-lane arena-response-lane--${provider.accent} ${
+    status === "failed"
+      ? "arena-response-lane--failed"
+      : ""
+  }`;
+
   return (
-    <section
-      className={`min-w-0 overflow-hidden border bg-[var(--surface)] ${
-        status === "complete"
-          ? provider.accentBorder
-          : "border-[var(--border)]"
-      }`}
-    >
-      <header className="flex items-center justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span
-              className={`h-2 w-2 shrink-0 rounded-full ${
-                status === "thinking"
-                  ? `${provider.accentBg} animate-pulse`
-                  : status === "failed"
-                    ? "bg-[var(--danger)]"
-                    : provider.accentBg
-              }`}
-            />
+    <article className={laneClass}>
+      <header className="arena-response-lane__header">
+        <div className="arena-response-lane__identity">
+          <h3 className="arena-response-lane__name">
+            <span className="arena-response-lane__dot" />
 
-            <h2 className="truncate font-[family-name:var(--font-display)] text-2xl uppercase tracking-wide">
-              {provider.name}
-            </h2>
-          </div>
+            {provider.name}
+          </h3>
 
-          <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
+          <p className="arena-response-lane__type">
             Entrant
           </p>
         </div>
 
-        <span
-          className={`shrink-0 font-mono text-[9px] uppercase tracking-[0.16em] ${
-            status === "thinking"
-              ? provider.accentText
-              : status === "complete"
-                ? "text-[var(--success)]"
-                : status === "failed"
-                  ? "text-[var(--danger)]"
-                  : "text-[var(--foreground-subtle)]"
-          }`}
-        >
+        <span className="arena-response-lane__status">
           {status === "thinking"
             ? "Thinking"
             : status === "complete"
               ? "Complete"
               : status === "failed"
                 ? "Failed"
-                : messages.length > 0
+                : response
                   ? "Last result"
                   : "Ready"}
         </span>
       </header>
 
-      <div className="p-5">
-        {status === "thinking" && (
-          <div className="space-y-3">
-            <div className="border border-[var(--border)] bg-[var(--surface-raised)] p-4">
-              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                Round {String(roundNumber).padStart(2, "0")}
-              </p>
+      {status === "thinking" ? (
+        <div className="arena-response-lane__thinking">
+          <span className="arena-response-lane__thinking-title">
+            Round{" "}
+            {String(
+              roundNumber,
+            ).padStart(2, "0")}{" "}
+            · Responding
+          </span>
 
-              <p className="mt-3 text-sm leading-6 text-[var(--foreground-muted)]">
-                Waiting for {provider.name} to complete the round.
-              </p>
-
-              <div className="mt-5 flex gap-1.5">
-                <span
-                  className={`h-1.5 w-10 animate-pulse rounded-full ${provider.accentBg}`}
-                />
-                <span
-                  className={`h-1.5 w-16 animate-pulse rounded-full ${provider.accentBg} [animation-delay:120ms]`}
-                />
-                <span
-                  className={`h-1.5 w-6 animate-pulse rounded-full ${provider.accentBg} [animation-delay:240ms]`}
-                />
-              </div>
-            </div>
+          <div className="arena-thinking-bars">
+            <span />
+            <span />
+            <span />
           </div>
-        )}
+        </div>
+      ) : (
+        <div className="arena-response-lane__body">
+          {prompt && (
+            <div className="arena-response-lane__prompt">
+              <span className="arena-response-lane__prompt-label">
+                Prompt
+              </span>
 
-        {status === "failed" && (
-          <div className="space-y-4">
-            {displayedPrompt && (
-              <div>
-                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                  Prompt
-                </p>
-
-                <p className="mt-2 text-sm leading-6 text-[var(--foreground-muted)]">
-                  {displayedPrompt}
-                </p>
-              </div>
-            )}
-
-            <div className="border border-[var(--danger)]/40 bg-[var(--danger)]/5 p-4">
-              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--danger)]">
-                Round failed
-              </p>
-
-              <p className="mt-2 text-sm leading-6 text-[var(--foreground-muted)]">
-                {error ?? `${provider.name} could not complete this round.`}
-              </p>
-            </div>
-
-            {lastHistoricalResponse && (
-              <div className="border-t border-[var(--border)] pt-4">
-                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                  Last response
-                </p>
-
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--foreground)]">
-                  {lastHistoricalResponse.content}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {status === "complete" && latestResponse && (
-          <div className="space-y-5">
-            <div>
-              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                Round {String(roundNumber).padStart(2, "0")} · Prompt
-              </p>
-
-              <p className="mt-2 text-sm leading-6 text-[var(--foreground-muted)]">
-                {displayedPrompt}
-              </p>
-            </div>
-
-            <div className="border-t border-[var(--border)] pt-5">
-              <p className={`font-mono text-[9px] uppercase tracking-[0.16em] ${provider.accentText}`}>
-                Response
-              </p>
-
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--foreground)]">
-                {latestResponse.content}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {status === "idle" && displayedResponse && (
-          <div className="space-y-5">
-            {displayedPrompt && (
-              <div>
-                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                  Last prompt
-                </p>
-
-                <p className="mt-2 text-sm leading-6 text-[var(--foreground-muted)]">
-                  {displayedPrompt}
-                </p>
-              </div>
-            )}
-
-            <div className="border-t border-[var(--border)] pt-5">
-              <p className={`font-mono text-[9px] uppercase tracking-[0.16em] ${provider.accentText}`}>
-                Response
-              </p>
-
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--foreground)]">
-                {displayedResponse}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {status === "idle" &&
-          !displayedResponse && (
-            <div className="flex min-h-40 items-center justify-center border border-dashed border-[var(--border)] px-5 text-center">
-              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
-                Awaiting first round
+              <p className="arena-response-lane__prompt-text">
+                {prompt}
               </p>
             </div>
           )}
 
-        {olderMessages.length > 0 && (
-          <details className="mt-5 border-t border-[var(--border)] pt-4">
-            <summary className="cursor-pointer list-none font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--foreground-muted)] transition hover:text-[var(--foreground)]">
-              View earlier exchanges
-            </summary>
+          {status ===
+            "failed" && (
+            <div className="arena-response-lane__response">
+              <div className="arena-response-lane__failure">
+                <span className="arena-response-lane__failure-label">
+                  Round failed
+                </span>
 
-            <div className="mt-4 space-y-4">
-              {olderMessages.map((message, index) => (
-                <div
-                  key={`${message.role}-${index}`}
-                  className="border-l border-[var(--border-strong)] pl-4"
-                >
-                  <p className="font-mono text-[8px] uppercase tracking-[0.15em] text-[var(--foreground-subtle)]">
-                    {message.role === "user"
-                      ? "Prompt"
-                      : provider.name}
-                  </p>
-
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--foreground-muted)]">
-                    {message.content}
-                  </p>
-                </div>
-              ))}
+                <p className="arena-response-lane__failure-text">
+                  {error ||
+                    `${provider.name} could not complete this round.`}
+                </p>
+              </div>
             </div>
-          </details>
-        )}
-      </div>
-    </section>
+          )}
+
+          {status !== "failed" &&
+            response && (
+              <div className="arena-response-lane__response">
+                <span className="arena-response-lane__response-label">
+                  Response
+                </span>
+
+                <p className="arena-response-lane__response-text">
+                  {response}
+                </p>
+              </div>
+            )}
+
+          {!response &&
+            status !== "failed" &&
+            !prompt && (
+              <div className="arena-response-lane__thinking">
+                <span className="arena-response-lane__thinking-title">
+                  Awaiting first round
+                </span>
+              </div>
+            )}
+
+          {olderMessages.length >
+            0 && (
+            <details className="arena-response-lane__history">
+              <summary>
+                Earlier exchanges
+              </summary>
+
+              <div className="arena-response-lane__history-items">
+                {olderMessages.map(
+                  (
+                    message,
+                    index,
+                  ) => (
+                    <div
+                      key={`${message.role}-${index}`}
+                      className="arena-response-lane__history-item"
+                    >
+                      <span className="arena-response-lane__history-label">
+                        {message.role ===
+                        "user"
+                          ? "Prompt"
+                          : provider.name}
+                      </span>
+
+                      <p className="arena-response-lane__history-text">
+                        {
+                          message.content
+                        }
+                      </p>
+                    </div>
+                  ),
+                )}
+              </div>
+            </details>
+          )}
+        </div>
+      )}
+    </article>
   );
 }
