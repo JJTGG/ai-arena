@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useState,
+  type KeyboardEvent,
+} from "react";
 
 const MAX_LENGTH = 4000;
 
@@ -15,21 +18,23 @@ export default function ChatInput({
   roundNumber,
   disabled = false,
 }: ChatInputProps) {
-  const [message, setMessage] = useState("");
+  const [message, setMessage] =
+    useState("");
 
   function handleSubmit() {
-    const trimmedMessage = message.trim();
+    const trimmed =
+      message.trim();
 
-    if (!trimmedMessage || disabled) {
+    if (!trimmed || disabled) {
       return;
     }
 
-    onSubmit(trimmedMessage);
+    onSubmit(trimmed);
     setMessage("");
   }
 
   function handleKeyDown(
-    event: React.KeyboardEvent<HTMLTextAreaElement>,
+    event: KeyboardEvent<HTMLTextAreaElement>,
   ) {
     if (
       event.key === "Enter" &&
@@ -41,50 +46,55 @@ export default function ChatInput({
   }
 
   return (
-    <div className="border border-[var(--border-strong)] bg-[var(--surface)] transition focus-within:border-[var(--accent)]">
-      <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-        <div>
-          <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
-            Round {String(roundNumber).padStart(2, "0")}
-          </p>
+    <div className="arena-prompt">
+      <div className="arena-prompt__meta">
+        <span className="arena-prompt__meta-label">
+          Round{" "}
+          {String(
+            roundNumber,
+          ).padStart(2, "0")}
+        </span>
 
-          <p className="mt-1 font-[family-name:var(--font-display)] text-xl uppercase tracking-wide">
-            Put them to the test
-          </p>
-        </div>
-
-        <span className="font-mono text-[9px] text-[var(--foreground-subtle)]">
-          {message.length} / {MAX_LENGTH}
+        <span className="arena-prompt__count">
+          {message.length} /{" "}
+          {MAX_LENGTH}
         </span>
       </div>
 
       <textarea
         value={message}
         onChange={(event) =>
-          setMessage(event.target.value)
+          setMessage(
+            event.target.value,
+          )
         }
-        onKeyDown={handleKeyDown}
+        onKeyDown={
+          handleKeyDown
+        }
         maxLength={MAX_LENGTH}
-        placeholder="Ask the same question to everyone in your lineup..."
         disabled={disabled}
-        className="min-h-40 w-full resize-none bg-transparent px-4 py-5 text-sm leading-7 text-[var(--foreground)] outline-none placeholder:text-[var(--foreground-subtle)] disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-48"
+        placeholder="Give every entrant the same question..."
+        className="arena-prompt__textarea"
+        aria-label="Arena prompt"
       />
 
-      <div className="flex flex-col gap-3 border-t border-[var(--border)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--foreground-subtle)]">
-          Shift + Enter for new line
+      <div className="arena-prompt__footer">
+        <span className="arena-prompt__hint">
+          Shift + Enter · New line
         </span>
 
         <button
           type="button"
           onClick={handleSubmit}
           disabled={
-            !message.trim() ||
-            disabled
+            disabled ||
+            !message.trim()
           }
-          className="border border-[var(--accent)] bg-[var(--accent)] px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--accent-foreground)] transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+          className="arena-enter"
         >
-          {disabled ? "Round active" : "Enter Arena →"}
+          {disabled
+            ? "Round active"
+            : "Enter Arena →"}
         </button>
       </div>
     </div>
