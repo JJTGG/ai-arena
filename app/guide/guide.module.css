@@ -1,0 +1,679 @@
+.guidePage {
+  min-height: 100vh;
+  padding: 1rem;
+  background:
+    radial-gradient(
+      circle at 12% 4%,
+      rgba(245, 165, 36, 0.055),
+      transparent 25rem
+    ),
+    radial-gradient(
+      circle at 92% 16%,
+      rgba(40, 199, 217, 0.035),
+      transparent 24rem
+    ),
+    var(--background);
+  color: var(--foreground);
+}
+
+.guideShell {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Header                                                                      */
+/* -------------------------------------------------------------------------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  min-height: 4rem;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  min-height: 2.4rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--border);
+
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--foreground-muted);
+
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.backLink:hover {
+  border-color: var(--accent);
+  color: var(--foreground);
+  background: rgba(245, 165, 36, 0.035);
+}
+
+.backLink:active {
+  transform: translateY(1px);
+}
+
+.headerTag {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Hero                                                                        */
+/* -------------------------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  padding: 5rem 0 4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 7rem;
+  height: 1px;
+
+  content: "";
+  background: linear-gradient(
+    90deg,
+    var(--accent),
+    transparent
+  );
+}
+
+.heroEyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.heroTitle {
+  max-width: 820px;
+  margin-top: 0.6rem;
+
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 10vw, 7rem);
+  line-height: 0.88;
+  letter-spacing: 0.012em;
+  text-transform: uppercase;
+}
+
+.heroText {
+  max-width: 650px;
+  margin-top: 1.4rem;
+
+  font-size: 0.98rem;
+  line-height: 1.8;
+  color: var(--foreground-muted);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Main layout                                                                 */
+/* -------------------------------------------------------------------------- */
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 270px;
+  gap: 4rem;
+  align-items: start;
+
+  padding: 3rem 0 4rem;
+}
+
+.content {
+  min-width: 0;
+}
+
+.section {
+  padding: 0 0 3.75rem;
+}
+
+.section + .section {
+  padding-top: 3.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.sectionIndex {
+  display: inline-block;
+
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+
+.sectionTitle {
+  margin-top: 0.55rem;
+
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.sectionBody {
+  margin-top: 1rem;
+
+  display: grid;
+  gap: 1rem;
+
+  font-size: 0.9rem;
+  line-height: 1.85;
+  color: var(--foreground-muted);
+}
+
+.sectionBody strong {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Provider cards                                                              */
+/* -------------------------------------------------------------------------- */
+
+.providerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+
+  margin-top: 1.5rem;
+}
+
+.providerCard {
+  position: relative;
+  overflow: hidden;
+
+  min-width: 0;
+  padding: 1.15rem;
+
+  border: 1px solid var(--border);
+  background: var(--surface);
+
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.providerCard:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-raised);
+  transform: translateY(-1px);
+}
+
+.providerCard::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 2px;
+
+  content: "";
+}
+
+.providerCard:nth-child(1)::before {
+  background: var(--cyan);
+}
+
+.providerCard:nth-child(2)::before {
+  background: var(--magenta);
+}
+
+.providerName {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.providerType {
+  margin-top: 0.45rem;
+
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+
+.providerLink {
+  display: inline-flex;
+  align-items: center;
+
+  margin-top: 1.15rem;
+
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+
+  transition: color 160ms ease;
+}
+
+.providerLink:hover {
+  color: var(--accent-hover);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Setup blocks                                                                */
+/* -------------------------------------------------------------------------- */
+
+.setupStack {
+  display: grid;
+  gap: 0.7rem;
+
+  margin-top: 1.5rem;
+}
+
+.setupBlock {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.setupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.setupProvider {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+
+.setupMarker {
+  font-family: var(--font-mono);
+  font-size: 0.45rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+
+.setupList {
+  padding: 1rem 1rem 1.15rem;
+
+  display: grid;
+  gap: 0.7rem;
+}
+
+.setupItem {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: var(--foreground-muted);
+}
+
+.setupNumber {
+  color: var(--foreground-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Flow diagram                                                                */
+/* -------------------------------------------------------------------------- */
+
+.flow {
+  margin-top: 1.5rem;
+
+  display: grid;
+  gap: 1px;
+
+  border: 1px solid var(--border);
+  background: var(--border);
+}
+
+.flowStep {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+
+  padding: 1rem;
+
+  background: var(--surface);
+}
+
+.flowStepNumber {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+}
+
+.flowStepText {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Example comparison                                                          */
+/* -------------------------------------------------------------------------- */
+
+.example {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.examplePrompt {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.exampleLabel {
+  font-family: var(--font-mono);
+  font-size: 0.46rem;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+
+.exampleQuestion {
+  margin-top: 0.5rem;
+
+  font-size: 0.84rem;
+  line-height: 1.7;
+  color: var(--foreground);
+}
+
+.exampleResults {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+
+  background: var(--border);
+}
+
+.exampleResult {
+  min-width: 0;
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.exampleResult:nth-child(1) {
+  border-left: 2px solid var(--cyan);
+}
+
+.exampleResult:nth-child(2) {
+  border-left: 2px solid var(--magenta);
+}
+
+.exampleResultName {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.exampleResultText {
+  margin-top: 0.65rem;
+
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--foreground-muted);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Safety / important note                                                     */
+/* -------------------------------------------------------------------------- */
+
+.note {
+  margin-top: 1.5rem;
+
+  padding: 1rem;
+  border-left: 2px solid var(--accent);
+  background: rgba(245, 165, 36, 0.035);
+}
+
+.noteLabel {
+  font-family: var(--font-mono);
+  font-size: 0.46rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.noteText {
+  margin-top: 0.55rem;
+
+  font-size: 0.82rem;
+  line-height: 1.75;
+  color: var(--foreground-muted);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sticky navigation                                                           */
+/* -------------------------------------------------------------------------- */
+
+.rail {
+  position: sticky;
+  top: 1.5rem;
+
+  border-top: 1px solid var(--border);
+}
+
+.railLabel {
+  padding: 0.8rem 0;
+
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.railSteps {
+  display: grid;
+  border: 1px solid var(--border);
+  background: var(--border);
+}
+
+.railStep {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  gap: 0.6rem;
+
+  padding: 0.75rem;
+
+  background: var(--surface);
+
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: var(--foreground-muted);
+}
+
+.railStepNumber {
+  font-family: var(--font-mono);
+  font-size: 0.45rem;
+  color: var(--foreground-subtle);
+}
+
+.railStepText {
+  min-width: 0;
+}
+
+.railAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 2.7rem;
+  margin-top: 0.7rem;
+  padding: 0 1rem;
+
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-foreground);
+
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.railAction:hover {
+  background: var(--accent-hover);
+}
+
+.railAction:active {
+  transform: translateY(1px);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Footer                                                                      */
+/* -------------------------------------------------------------------------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  padding: 1rem 0 0.4rem;
+  border-top: 1px solid var(--border);
+}
+
+.footerText {
+  font-family: var(--font-mono);
+  font-size: 0.45rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+
+.footerLink {
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--foreground-muted);
+
+  transition: color 160ms ease;
+}
+
+.footerLink:hover {
+  color: var(--foreground);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Responsive                                                                  */
+/* -------------------------------------------------------------------------- */
+
+@media (min-width: 720px) {
+  .guidePage {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 860px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .rail {
+    position: static;
+    order: -1;
+    margin-bottom: 3rem;
+  }
+
+  .railSteps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .railAction {
+    margin-top: 0.7rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .hero {
+    padding: 3.4rem 0 3rem;
+  }
+
+  .contentGrid {
+    padding-top: 2.2rem;
+  }
+
+  .providerGrid,
+  .exampleResults {
+    grid-template-columns: 1fr;
+  }
+
+  .railSteps {
+    grid-template-columns: 1fr;
+  }
+
+  .footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 460px) {
+  .guidePage {
+    padding: 0.75rem;
+  }
+
+  .header {
+    min-height: 3.6rem;
+  }
+
+  .headerTag {
+    display: none;
+  }
+
+  .heroTitle {
+    font-size: 3.3rem;
+  }
+}
