@@ -145,6 +145,7 @@ export type HostedRound = {
   id: string;
   entitlementId: string;
   idempotencyKey: string;
+  prompt: string;
   usageDate: string;
   status: RoundStatus;
   reservedAt: string;
@@ -169,6 +170,9 @@ export type HostedRoundAttempt = {
   startedAt: string | null;
   completedAt: string | null;
   latencyMs: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  responseText: string | null;
   errorCode: HostedErrorCode | null;
   createdAt: string;
 };
