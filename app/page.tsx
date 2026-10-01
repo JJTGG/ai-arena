@@ -1,711 +1,574 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { openAIAdapter } from "../lib/ai/adapters/openai";
-import { googleAdapter } from "../lib/ai/adapters/google";
-import { runArena } from "../lib/ai/arena";
-import type {
-  AIMessage,
-  AIProviderId,
-  AIResponse,
-} from "../lib/ai/types";
-import { recordUsage } from "../lib/ai/usage";
-import ProviderSelector from "./components/provider-selector";
-import ChatInput from "./components/chat-input";
-import ResponseCard from "./components/response-card";
+import styles from "./home.module.css";
 
-type ProviderHistory = Record<AIProviderId, AIMessage[]>;
+const HOW_IT_WORKS = [
+  {
+    number: "01",
+    title: "Ask",
+    text: "Put one prompt on the floor.",
+  },
+  {
+    number: "02",
+    title: "Enter",
+    text: "Send the same prompt to multiple entrants.",
+  },
+  {
+    number: "03",
+    title: "Compare",
+    text: "See the responses together and decide what holds up.",
+  },
+];
 
-type RoundState =
-  | "idle"
-  | "active"
-  | "complete"
-  | "partial"
-  | "failed";
+const BUILT_FOR = [
+  "Writing",
+  "Coding",
+  "Research",
+  "Analysis",
+  "Brainstorming",
+  "Decision support",
+];
 
-type ProviderRoundState =
-  | "idle"
-  | "thinking"
-  | "complete"
-  | "failed";
+const FAQ = [
+  {
+    question: "What is AI Arena?",
+    answer:
+      "AI Arena is a workspace built around one simple idea: give multiple AI entrants the same prompt and compare what comes back in one place.",
+  },
+  {
+    question: "What is BYOK?",
+    answer:
+      "BYOK means Bring Your Own Key. You connect your own supported provider access and use AI Arena without needing an AI Arena account.",
+  },
+  {
+    question: "What is Hosted?",
+    answer:
+      "Hosted is the managed access path. AI Arena provides the hosted model access, so you do not need to bring your own API keys.",
+  },
+  {
+    question: "How are hosted models selected?",
+    answer:
+      "The Hosted lineup is controlled by AI Arena. Underlying providers and models may change as the product and infrastructure evolve.",
+  },
+  {
+    question: "Are API keys stored?",
+    answer:
+      "BYOK keys remain part of the browser-based BYOK experience. Hosted access does not require you to provide provider API keys.",
+  },
+  {
+    question: "Who can use Hosted?",
+    answer:
+      "Hosted access is intended for adults and will require an AI Arena account.",
+  },
+];
 
-const EMPTY_HISTORY: ProviderHistory = {
-  openai: [],
-  google: [],
-};
-
-const EMPTY_PROVIDER_STATE: Record<
-  AIProviderId,
-  ProviderRoundState
-> = {
-  openai: "idle",
-  google: "idle",
-};
-
-function formatRound(round: number) {
-  return String(round).padStart(2, "0");
-}
-
-function getFailureMessage(error: unknown) {
-  const message =
-    error instanceof Error
-      ? error.message.toLowerCase()
-      : "";
-
-  if (
-    message.includes("401") ||
-    message.includes("403") ||
-    message.includes("unauthorized") ||
-    message.includes("api key")
-  ) {
-    return "The API key was rejected.";
-  }
-
-  if (
-    message.includes("429") ||
-    message.includes("quota") ||
-    message.includes("rate limit") ||
-    message.includes("rate_limit") ||
-    message.includes("credit") ||
-    message.includes("insufficient")
-  ) {
-    return "The provider reported a quota or available-credit issue.";
-  }
-
-  return "The provider could not complete this round.";
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  return (
+    <div
+      className={`${styles.reveal} ${className}`}
+      style={{ "--reveal-delay": `${delay}ms` } as React.CSSProperties}
+    >
+      {children}
+    </div>
+  );
 }
 
 export default function Home() {
-  const [selectedProviders, setSelectedProviders] =
-    useState<AIProviderId[]>([]);
-
-  const [availableProviders, setAvailableProviders] =
-    useState<Record<AIProviderId, boolean>>({
-      openai: false,
-      google: false,
-    });
-
-  const [history, setHistory] =
-    useState<ProviderHistory>(
-      EMPTY_HISTORY,
-    );
-
-  const [responses, setResponses] =
-    useState<AIResponse[]>([]);
-
-  const [providerErrors, setProviderErrors] =
-    useState<
-      Partial<Record<AIProviderId, string>>
-    >({});
-
-  const [providerRoundState, setProviderRoundState] =
-    useState<
-      Record<
-        AIProviderId,
-        ProviderRoundState
-      >
-    >(EMPTY_PROVIDER_STATE);
-
-  const [roundState, setRoundState] =
-    useState<RoundState>("idle");
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [currentRound, setCurrentRound] =
-    useState(0);
-
-  const [nextRound, setNextRound] =
-    useState(1);
-
-  const [activePrompt, setActivePrompt] =
-    useState("");
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [motionReady, setMotionReady] = useState(false);
 
   useEffect(() => {
-    const storedHistory =
-      sessionStorage.getItem(
-        "ai-arena-history",
-      );
+    setMotionReady(true);
 
-    const storedNextRound =
-      sessionStorage.getItem(
-        "ai-arena-next-round",
-      );
+    const elements = document.querySelectorAll(
+      "[data-arena-reveal]",
+    );
 
-    if (storedHistory) {
-      try {
-        const parsed =
-          JSON.parse(
-            storedHistory,
-          ) as ProviderHistory;
+    if (!("IntersectionObserver" in window)) {
+      elements.forEach((element) => {
+        element.classList.add(styles.revealVisible);
+      });
 
-        if (
-          parsed &&
-          Array.isArray(parsed.openai) &&
-          Array.isArray(parsed.google)
-        ) {
-          setHistory(parsed);
-
-          const completedRounds =
-            Math.max(
-              parsed.openai.filter(
-                (message) =>
-                  message.role === "user",
-              ).length,
-              parsed.google.filter(
-                (message) =>
-                  message.role === "user",
-              ).length,
-            );
-
-          setCurrentRound(
-            completedRounds,
-          );
-        } else {
-          sessionStorage.removeItem(
-            "ai-arena-history",
-          );
-        }
-      } catch {
-        sessionStorage.removeItem(
-          "ai-arena-history",
-        );
-      }
-    }
-
-    if (storedNextRound) {
-      const parsed =
-        Number.parseInt(
-          storedNextRound,
-          10,
-        );
-
-      if (
-        Number.isFinite(parsed) &&
-        parsed > 0
-      ) {
-        setNextRound(parsed);
-      }
-    }
-  }, []);
-
-  async function handleSubmit(
-    message: string,
-  ) {
-    if (
-      selectedProviders.length === 0 ||
-      loading
-    ) {
       return;
     }
 
-    const roundNumber = nextRound;
-
-    setLoading(true);
-    setRoundState("active");
-    setCurrentRound(roundNumber);
-    setNextRound(
-      roundNumber + 1,
-    );
-    setActivePrompt(message);
-    setResponses([]);
-    setProviderErrors({});
-
-    sessionStorage.setItem(
-      "ai-arena-next-round",
-      String(roundNumber + 1),
-    );
-
-    const nextStates = {
-      ...EMPTY_PROVIDER_STATE,
-    };
-
-    for (const provider of selectedProviders) {
-      nextStates[provider] =
-        "thinking";
-    }
-
-    setProviderRoundState(
-      nextStates,
-    );
-
-    const adapters = [
-      openAIAdapter,
-      googleAdapter,
-    ].filter((adapter) =>
-      selectedProviders.includes(
-        adapter.provider.id,
-      ),
-    );
-
-    const providerHistories =
-      selectedProviders.reduce(
-        (result, provider) => {
-          result[provider] =
-            history[provider];
-
-          return result;
-        },
-        {} as ProviderHistory,
-      );
-
-    const successfulResponses: AIResponse[] =
-      [];
-
-    const failedProviders: Partial<
-      Record<AIProviderId, string>
-    > = {};
-
-    await Promise.all(
-      adapters.map(
-        async (adapter) => {
-          const providerId =
-            adapter.provider.id;
-
-          try {
-            const result =
-              await runArena(
-                {
-                  message,
-                  history:
-                    providerHistories[
-                      providerId
-                    ],
-                },
-                [adapter],
-              );
-
-            const response =
-              result[0];
-
-            if (!response) {
-              throw new Error(
-                "Provider returned no response.",
-              );
-            }
-
-            successfulResponses.push(
-              response,
-            );
-
-            setResponses(
-              (current) => [
-                ...current,
-                response,
-              ],
-            );
-
-            setProviderRoundState(
-              (current) => ({
-                ...current,
-                [providerId]:
-                  "complete",
-              }),
-            );
-          } catch (error) {
-            const failure =
-              getFailureMessage(
-                error,
-              );
-
-            failedProviders[
-              providerId
-            ] = failure;
-
-            setProviderErrors(
-              (current) => ({
-                ...current,
-                [providerId]:
-                  failure,
-              }),
-            );
-
-            setProviderRoundState(
-              (current) => ({
-                ...current,
-                [providerId]:
-                  "failed",
-              }),
-            );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add(styles.revealVisible);
+            observer.unobserve(entry.target);
           }
-        },
-      ),
-    );
-
-    if (
-      successfulResponses.length === 0
-    ) {
-      setRoundState("failed");
-    } else if (
-      successfulResponses.length <
-      selectedProviders.length
-    ) {
-      setRoundState("partial");
-    } else {
-      setRoundState("complete");
-    }
-
-    if (
-      successfulResponses.length > 0
-    ) {
-      recordUsage(
-        successfulResponses.map(
-          (response) =>
-            response.provider,
-        ),
-      );
-    }
-
-    setHistory(
-      (currentHistory) => {
-        if (
-          successfulResponses.length ===
-          0
-        ) {
-          return currentHistory;
         }
-
-        const updatedHistory = {
-          ...currentHistory,
-        };
-
-        for (const response of successfulResponses) {
-          updatedHistory[
-            response.provider
-          ] = [
-            ...currentHistory[
-              response.provider
-            ],
-            {
-              role: "user",
-              content: message,
-            },
-            {
-              role: "assistant",
-              content:
-                response.content,
-            },
-          ];
-        }
-
-        sessionStorage.setItem(
-          "ai-arena-history",
-          JSON.stringify(
-            updatedHistory,
-          ),
-        );
-
-        return updatedHistory;
+      },
+      {
+        threshold: 0.12,
+        rootMargin: "0px 0px -8% 0px",
       },
     );
 
-    setProviderErrors(
-      failedProviders,
-    );
-
-    setLoading(false);
-  }
-
-  function clearArena() {
-    if (loading) {
-      return;
-    }
-
-    setHistory({
-      ...EMPTY_HISTORY,
+    elements.forEach((element) => {
+      observer.observe(element);
     });
 
-    setResponses([]);
-    setProviderErrors({});
-
-    setProviderRoundState({
-      ...EMPTY_PROVIDER_STATE,
-    });
-
-    setRoundState("idle");
-    setCurrentRound(0);
-    setNextRound(1);
-    setActivePrompt("");
-
-    sessionStorage.removeItem(
-      "ai-arena-history",
-    );
-
-    sessionStorage.removeItem(
-      "ai-arena-next-round",
-    );
-  }
-
-  const hasHistory =
-    Object.values(history).some(
-      (providerHistory) =>
-        providerHistory.length > 0,
-    );
-
-  const connectedCount = useMemo(
-    () =>
-      Object.values(
-        availableProviders,
-      ).filter(Boolean).length,
-    [availableProviders],
-  );
-
-  const lineupCount =
-    selectedProviders.length;
-
-  let arenaStatus = "NO ENTRANTS";
-
-  if (roundState === "active") {
-    arenaStatus = `ROUND ${formatRound(
-      currentRound,
-    )} · LIVE`;
-  } else if (
-    roundState === "partial"
-  ) {
-    arenaStatus = `ROUND ${formatRound(
-      currentRound,
-    )} · PARTIAL`;
-  } else if (
-    roundState === "failed"
-  ) {
-    arenaStatus = `ROUND ${formatRound(
-      currentRound,
-    )} · FAILED`;
-  } else if (
-    roundState === "complete"
-  ) {
-    arenaStatus = `ROUND ${formatRound(
-      currentRound,
-    )} · COMPLETE`;
-  } else if (lineupCount === 1) {
-    arenaStatus = "1 ENTRANT READY";
-  } else if (lineupCount > 1) {
-    arenaStatus = `${lineupCount} ENTRANTS READY`;
-  } else if (connectedCount > 0) {
-    arenaStatus = "LINEUP AVAILABLE";
-  }
-
-  const statusClass =
-    roundState === "active"
-      ? "arena-roundbar__state--active"
-      : roundState === "complete"
-        ? "arena-roundbar__state--complete"
-        : roundState === "partial"
-          ? "arena-roundbar__state--partial"
-          : roundState === "failed"
-            ? "arena-roundbar__state--failed"
-            : "";
-
-  const roundLabel = formatRound(
-    currentRound > 0
-      ? currentRound
-      : nextRound,
-  );
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <main className="arena-page">
-      <div className="arena-shell">
-        <header className="arena-header">
-          <div className="arena-brand">
-            <span className="arena-brand__signal" />
-
-            <h1 className="arena-brand__name">
-              AI Arena
-            </h1>
-
-            <span className="arena-brand__sub">
-              One prompt · multiple minds
-            </span>
-          </div>
-
-          <Link
-            href="/guide"
-            className="arena-guide"
-          >
-            Guide
+    <main
+      className={`${styles.home} ${
+        motionReady ? styles.motionReady : ""
+      }`}
+    >
+      <div className={styles.shell}>
+        <header className={styles.header}>
+          <Link href="/" className={styles.brand} aria-label="AI Arena home">
+            <span className={styles.brandSignal} />
+            <span className={styles.brandName}>AI Arena</span>
           </Link>
+
+          <nav className={styles.nav} aria-label="Primary navigation">
+            <Link href="#arena" className={styles.navLink}>
+              The Arena
+            </Link>
+
+            <Link href="#hosted-access" className={styles.navLink}>
+              Hosted
+            </Link>
+
+            <Link href="/arena" className={styles.navAction}>
+              Enter Arena
+            </Link>
+          </nav>
         </header>
 
-        <div className="arena-roundbar">
-          <span className="arena-roundbar__round">
-            Round {roundLabel}
-          </span>
-
-          <span
-            className={`arena-roundbar__state ${statusClass}`}
-          >
-            {arenaStatus}
-          </span>
-        </div>
-
-        <section className="arena-section arena-lineup">
-          <div className="arena-section__label">
-            <span>Lineup</span>
-
-            <span className="arena-section__line" />
-
-            <span className="arena-section__meta">
-              {lineupCount}/2
-            </span>
+        <section className={styles.hero}>
+          <div className={styles.heroAtmosphere}>
+            <span className={styles.heroRing} />
+            <span className={styles.heroRingSmall} />
+            <span className={styles.heroSignalLine} />
           </div>
 
-          <ProviderSelector
-            selected={
-              selectedProviders
-            }
-            onChange={
-              setSelectedProviders
-            }
-            onAvailabilityChange={
-              setAvailableProviders
-            }
-          />
-        </section>
+          <Reveal className={styles.heroInner} delay={80}>
+            <p className={styles.eyebrow}>ARENA SYSTEM · ONLINE</p>
 
-        <section className="arena-prompt-stage">
-          <div className="arena-prompt-heading">
-            <div>
-              <p className="arena-prompt-heading__eyebrow">
-                Round {roundLabel}
-              </p>
+            <h1 className={styles.heroTitle}>
+              One prompt.
+              <span>Multiple minds.</span>
+            </h1>
 
-              <h2 className="arena-prompt-heading__title">
-                Ask the Arena
-              </h2>
+            <p className={styles.heroText}>
+              Compare AI responses in one Arena instead of opening another
+              collection of tabs.
+            </p>
+
+            <div className={styles.heroActions}>
+              <Link href="/arena" className={styles.primaryButton}>
+                Enter the Arena
+              </Link>
+
+              <a href="#hosted-access" className={styles.secondaryButton}>
+                Explore Hosted Access
+              </a>
             </div>
 
-            <p className="arena-prompt-heading__note">
-              Same prompt
-              <br />
-              Every entrant
-            </p>
-          </div>
+            <div className={styles.heroReadout}>
+              <span>ROUND SYSTEM</span>
+              <span className={styles.readoutLine} />
+              <span>READY</span>
+            </div>
+          </Reveal>
+        </section>
 
-          <ChatInput
-            onSubmit={handleSubmit}
-            roundNumber={
-              currentRound > 0
-                ? currentRound
-                : nextRound
-            }
-            disabled={
-              loading ||
-              selectedProviders.length ===
-                0
-            }
-          />
+        <section className={styles.section}>
+          <Reveal delay={80}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.eyebrow}>01 · THE FLOW</p>
+
+                <h2 className={styles.sectionTitle}>
+                  How the Arena works
+                </h2>
+              </div>
+
+              <p className={styles.sectionNote}>
+                One prompt.
+                <br />
+                Same conditions.
+              </p>
+            </div>
+          </Reveal>
+
+          <div className={styles.flowGrid}>
+            {HOW_IT_WORKS.map((step, index) => (
+              <Reveal key={step.number} delay={140 + index * 90}>
+                <article className={styles.flowCard}>
+                  <div className={styles.cardIndex}>
+                    {step.number}
+                  </div>
+
+                  <div className={styles.cardRule} />
+
+                  <h3 className={styles.cardTitle}>{step.title}</h3>
+
+                  <p className={styles.cardText}>{step.text}</p>
+                </article>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <Reveal delay={80}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.eyebrow}>02 · ENTRY</p>
+
+                <h2 className={styles.sectionTitle}>
+                  Two ways to enter
+                </h2>
+              </div>
+            </div>
+          </Reveal>
+
+          <div className={styles.entryGrid}>
+            <Reveal delay={150}>
+              <article className={styles.entryCard}>
+                <div className={styles.entryTop}>
+                  <div>
+                    <p className={styles.eyebrow}>FREE ACCESS</p>
+                    <h3 className={styles.entryTitle}>BYOK</h3>
+                  </div>
+
+                  <span className={styles.entryMarker}>01</span>
+                </div>
+
+                <p className={styles.entryText}>
+                  Bring your own API keys and use the Arena directly from your
+                  browser.
+                </p>
+
+                <div className={styles.entryMeta}>
+                  <span>NO ACCOUNT REQUIRED</span>
+                  <span>YOUR KEYS</span>
+                </div>
+
+                <Link href="/arena" className={styles.entryButton}>
+                  Enter with BYOK
+                </Link>
+              </article>
+            </Reveal>
+
+            <Reveal delay={240}>
+              <article className={styles.entryCard}>
+                <div className={styles.entryTop}>
+                  <div>
+                    <p className={styles.eyebrow}>MANAGED ACCESS</p>
+                    <h3 className={styles.entryTitle}>Hosted</h3>
+                  </div>
+
+                  <span className={styles.entryMarker}>02</span>
+                </div>
+
+                <p className={styles.entryText}>
+                  No provider keys to manage. AI Arena handles the hosted
+                  access behind the Arena.
+                </p>
+
+                <div className={styles.entryMeta}>
+                  <span>ACCOUNT REQUIRED</span>
+                  <span>HOSTED ACCESS</span>
+                </div>
+
+                <a
+                  href="#hosted-access"
+                  className={styles.entryButton}
+                >
+                  Explore Hosted
+                </a>
+              </article>
+            </Reveal>
+          </div>
+        </section>
+
+        <section id="arena" className={`${styles.section} ${styles.arenaSection}`}>
+          <Reveal delay={80}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.eyebrow}>03 · THE ARENA</p>
+
+                <h2 className={styles.sectionTitle}>
+                  Same prompt. Multiple entrants.
+                </h2>
+              </div>
+
+              <p className={styles.sectionNote}>
+                The product is
+                <br />
+                the comparison.
+              </p>
+            </div>
+          </Reveal>
+
+          <Reveal delay={150}>
+            <div className={styles.arenaPreview}>
+              <div className={styles.arenaPreviewTop}>
+                <span>ROUND 07</span>
+                <span>2 ENTRANTS</span>
+                <span>COMPARE</span>
+              </div>
+
+              <div className={styles.arenaPrompt}>
+                <p className={styles.arenaPromptLabel}>PROMPT</p>
+
+                <p className={styles.arenaPromptText}>
+                  Explain the trade-offs of building a system this way.
+                </p>
+              </div>
+
+              <div className={styles.arenaLanes}>
+                <article className={`${styles.arenaLane} ${styles.arenaLaneCyan}`}>
+                  <header className={styles.laneHeader}>
+                    <div>
+                      <span className={styles.laneSignal} />
+                      <span>ENTRANT 01</span>
+                    </div>
+
+                    <span>COMPLETE</span>
+                  </header>
+
+                  <p className={styles.laneText}>
+                    A strong first response appears here, with its reasoning
+                    and trade-offs visible in the same round.
+                  </p>
+                </article>
+
+                <article
+                  className={`${styles.arenaLane} ${styles.arenaLaneMagenta}`}
+                >
+                  <header className={styles.laneHeader}>
+                    <div>
+                      <span className={styles.laneSignal} />
+                      <span>ENTRANT 02</span>
+                    </div>
+
+                    <span>COMPLETE</span>
+                  </header>
+
+                  <p className={styles.laneText}>
+                    A second response arrives under the same conditions, making
+                    similarities and differences immediately visible.
+                  </p>
+                </article>
+              </div>
+
+              <div className={styles.arenaPreviewBottom}>
+                <span>SAME PROMPT</span>
+                <span className={styles.previewDivider} />
+                <span>SIDE-BY-SIDE RESULT</span>
+              </div>
+            </div>
+          </Reveal>
         </section>
 
         <section
-          className={`arena-floor ${
-            roundState === "active"
-              ? "arena-floor--active"
-              : ""
-          }`}
+          id="hosted-access"
+          className={`${styles.section} ${styles.hostedSection}`}
         >
-          <div className="arena-floor__bar">
-            <span className="arena-floor__label">
-              Arena floor
-            </span>
+          <Reveal delay={80}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.eyebrow}>04 · HOSTED ACCESS</p>
 
-            <span className="arena-floor__status">
-              {arenaStatus}
-            </span>
-          </div>
+                <h2 className={styles.sectionTitle}>
+                  Enter without bringing your own keys.
+                </h2>
+              </div>
 
-          {!hasHistory &&
-            roundState === "idle" && (
-              <div className="arena-empty">
-                <div className="arena-empty__content">
-                  <div className="arena-empty__sigil">
-                    <span className="arena-empty__core" />
-                  </div>
+              <p className={styles.sectionNote}>
+                Managed by
+                <br />
+                AI Arena.
+              </p>
+            </div>
+          </Reveal>
 
-                  <p className="arena-empty__eyebrow">
-                    {lineupCount === 0
-                      ? "Awaiting entrants"
-                      : "Arena standing by"}
-                  </p>
+          <Reveal delay={150}>
+            <div className={styles.hostedPanel}>
+              <div className={styles.hostedIntro}>
+                <p className={styles.eyebrow}>HOSTED ACCESS</p>
 
-                  <h3 className="arena-empty__title">
-                    {lineupCount === 0
-                      ? "No round in progress"
-                      : `Ready for Round ${roundLabel}`}
-                  </h3>
+                <h3 className={styles.hostedTitle}>
+                  The Arena,
+                  <span>without the provider setup.</span>
+                </h3>
 
-                  <p className="arena-empty__text">
-                    {lineupCount === 0
-                      ? "Connect a provider and place an entrant in the lineup."
-                      : "Write your prompt above. Entering the round activates the floor."}
-                  </p>
+                <p className={styles.hostedText}>
+                  Hosted access gives you a controlled Arena experience without
+                  requiring you to manage third-party API keys yourself.
+                </p>
+              </div>
+
+              <div className={styles.hostedReadout}>
+                <div className={styles.readoutRow}>
+                  <span>ACCESS WINDOW</span>
+                  <strong>30 DAYS</strong>
+                </div>
+
+                <div className={styles.readoutRow}>
+                  <span>ROUNDS</span>
+                  <strong>60</strong>
+                </div>
+
+                <div className={styles.readoutRow}>
+                  <span>ENTRANTS / ROUND</span>
+                  <strong>2</strong>
+                </div>
+
+                <div className={styles.readoutRow}>
+                  <span>DAILY CEILING</span>
+                  <strong>2 ROUNDS</strong>
                 </div>
               </div>
-            )}
 
-          {(hasHistory ||
-            loading ||
-            roundState !== "idle") && (
-            <div className="arena-result-grid">
-              {selectedProviders.map(
-                (providerId) => (
-                  <ResponseCard
-                    key={providerId}
-                    providerId={providerId}
-                    messages={
-                      history[providerId]
-                    }
-                    latestResponse={responses.find(
-                      (response) =>
-                        response.provider ===
-                        providerId,
-                    )}
-                    status={
-                      providerRoundState[
-                        providerId
-                      ]
-                    }
-                    roundNumber={
-                      currentRound
-                    }
-                    currentPrompt={
-                      activePrompt
-                    }
-                    error={
-                      providerErrors[
-                        providerId
-                      ]
-                    }
-                  />
-                ),
-              )}
+              <a
+                href="#hosted-access"
+                className={styles.primaryButton}
+                aria-label="Hosted Access"
+              >
+                Get Hosted Access
+              </a>
             </div>
-          )}
+          </Reveal>
         </section>
 
-        {(hasHistory ||
-          roundState !== "idle") && (
-          <footer className="arena-footer">
-            <span className="arena-footer__meta">
-              {hasHistory
-                ? `${currentRound} ${
-                    currentRound === 1
-                      ? "round"
-                      : "rounds"
-                  } recorded`
-                : "No completed rounds"}
-            </span>
+        <section className={styles.section}>
+          <Reveal delay={80}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.eyebrow}>05 · USE CASES</p>
 
-            <button
-              type="button"
-              onClick={clearArena}
-              disabled={loading}
-              className="arena-clear"
-            >
-              Clear Arena
-            </button>
-          </footer>
-        )}
+                <h2 className={styles.sectionTitle}>Built for actual work.</h2>
+              </div>
+            </div>
+          </Reveal>
+
+          <div className={styles.useCaseGrid}>
+            {BUILT_FOR.map((item, index) => (
+              <Reveal key={item} delay={120 + index * 55}>
+                <div className={styles.useCase}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{item}</strong>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <Reveal delay={80}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.eyebrow}>06 · FAQ</p>
+
+                <h2 className={styles.sectionTitle}>Arena questions.</h2>
+              </div>
+            </div>
+          </Reveal>
+
+          <Reveal delay={140}>
+            <div className={styles.faqList}>
+              {FAQ.map((item, index) => {
+                const isOpen = activeFaq === index;
+
+                return (
+                  <article
+                    key={item.question}
+                    className={`${styles.faqItem} ${
+                      isOpen ? styles.faqItemOpen : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      className={styles.faqButton}
+                      aria-expanded={isOpen}
+                      onClick={() =>
+                        setActiveFaq(isOpen ? null : index)
+                      }
+                    >
+                      <span className={styles.faqNumber}>
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+
+                      <span className={styles.faqQuestion}>
+                        {item.question}
+                      </span>
+
+                      <span className={styles.faqState}>
+                        {isOpen ? "−" : "+"}
+                      </span>
+                    </button>
+
+                    <div className={styles.faqAnswer}>
+                      <p>{item.answer}</p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </Reveal>
+        </section>
+
+        <section className={styles.finalSection}>
+          <Reveal delay={80}>
+            <div className={styles.finalPanel}>
+              <p className={styles.eyebrow}>07 · READY</p>
+
+              <h2 className={styles.finalTitle}>
+                Step onto the floor.
+              </h2>
+
+              <p className={styles.finalText}>
+                Start with your own provider access, or explore the managed
+                Arena experience.
+              </p>
+
+              <div className={styles.heroActions}>
+                <Link href="/arena" className={styles.primaryButton}>
+                  Start with BYOK
+                </Link>
+
+                <a
+                  href="#hosted-access"
+                  className={styles.secondaryButton}
+                >
+                  Get Hosted Access
+                </a>
+              </div>
+            </div>
+          </Reveal>
+        </section>
+
+        <footer className={styles.footer}>
+          <span>AI Arena</span>
+
+          <div className={styles.footerLinks}>
+            <Link href="/arena">Arena</Link>
+            <Link href="/guide">Guide</Link>
+          </div>
+
+          <span>One prompt · multiple minds</span>
+        </footer>
       </div>
     </main>
   );
