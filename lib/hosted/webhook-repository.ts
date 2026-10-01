@@ -29,4 +29,10 @@ export interface HostedWebhookRepository
   updateWebhookEvent(
     event: HostedWebhookEvent,
   ): Promise<HostedWebhookEvent>;
+
+  executeTransaction<T>(
+    callback: (
+      repository: HostedWebhookRepository,
+    ) => Promise<T>,
+  ): Promise<T>;
 }
