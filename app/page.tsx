@@ -75,6 +75,7 @@ function Reveal({
 }) {
   return (
     <div
+      data-arena-reveal
       className={`${styles.reveal} ${className}`}
       style={{ "--reveal-delay": `${delay}ms` } as React.CSSProperties}
     >
@@ -301,7 +302,10 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="arena" className={`${styles.section} ${styles.arenaSection}`}>
+        <section
+          id="arena"
+          className={`${styles.section} ${styles.arenaSection}`}
+        >
           <Reveal delay={80}>
             <div className={styles.sectionHeader}>
               <div>
@@ -337,7 +341,9 @@ export default function Home() {
               </div>
 
               <div className={styles.arenaLanes}>
-                <article className={`${styles.arenaLane} ${styles.arenaLaneCyan}`}>
+                <article
+                  className={`${styles.arenaLane} ${styles.arenaLaneCyan}`}
+                >
                   <header className={styles.laneHeader}>
                     <div>
                       <span className={styles.laneSignal} />
@@ -458,7 +464,9 @@ export default function Home() {
               <div>
                 <p className={styles.eyebrow}>05 · USE CASES</p>
 
-                <h2 className={styles.sectionTitle}>Built for actual work.</h2>
+                <h2 className={styles.sectionTitle}>
+                  Built for actual work.
+                </h2>
               </div>
             </div>
           </Reveal>
@@ -481,7 +489,9 @@ export default function Home() {
               <div>
                 <p className={styles.eyebrow}>06 · FAQ</p>
 
-                <h2 className={styles.sectionTitle}>Arena questions.</h2>
+                <h2 className={styles.sectionTitle}>
+                  Arena questions.
+                </h2>
               </div>
             </div>
           </Reveal>
