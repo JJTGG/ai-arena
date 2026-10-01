@@ -100,15 +100,17 @@ export function createProviderFailureResult(
     retryable?: boolean;
   },
 ): HostedProviderResult {
+  const defaultRetryable =
+    errorCode === "PROVIDER_RATE_LIMITED" ||
+    errorCode === "PROVIDER_TIMEOUT" ||
+    errorCode === "PROVIDER_UNAVAILABLE";
+
   return {
     ok: false,
     latencyMs: options?.latencyMs ?? 0,
     errorCode,
     retryable:
-      options?.retryable ??
-      errorCode === "PROVIDER_RATE_LIMITED" ||
-      errorCode === "PROVIDER_TIMEOUT" ||
-      errorCode === "PROVIDER_UNAVAILABLE",
+      options?.retryable ?? defaultRetryable,
   };
 }
 
