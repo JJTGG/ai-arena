@@ -1,8 +1,10 @@
 import "server-only";
 
 import {
-  assertAccountActive,
   assertAccountEmail,
+} from "./account";
+import {
+  assertAccountActive,
   type HostedAuthContext,
   requireAuthenticatedUser,
 } from "./auth";
