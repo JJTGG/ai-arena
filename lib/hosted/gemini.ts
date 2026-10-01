@@ -8,9 +8,9 @@ import {
 } from "./provider-utils";
 import type {
   HostedProvider,
-  HostedProviderRequest,
 } from "./providers";
 import type {
+  HostedProviderRequest,
   HostedProviderResult,
 } from "./types";
 
