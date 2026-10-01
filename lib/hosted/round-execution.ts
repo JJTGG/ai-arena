@@ -62,16 +62,140 @@ export type ExecuteHostedRoundResult = {
     | "failed";
 };
 
-type PreparedExecution = {
+type LockedRoundState = {
   round: HostedRound;
   entitlement: HostedEntitlement;
   dailyUsage: HostedDailyUsage;
+};
+
+type PreparedExecution = LockedRoundState & {
   attempts: HostedRoundAttempt[];
   executionAttempts: HostedRoundAttempt[];
   entrants: ReturnType<
     typeof getEnabledHostedEntrants
   >;
 };
+
+async function getLockedRoundState(
+  repository: HostedRepository,
+  roundId: string,
+): Promise<LockedRoundState> {
+  /*
+   * Lock ordering is deliberate:
+   *
+   * entitlement
+   *     ↓
+   * daily usage
+   *     ↓
+   * round
+   *
+   * The initial round read is intentionally unlocked because
+   * we need the round's entitlement ID before acquiring the
+   * ordered locks.
+   */
+
+  const discoveredRound =
+    await repository.getRoundById(
+      roundId,
+    );
+
+  if (!discoveredRound) {
+    throw new HostedError(
+      "ROUND_NOT_FOUND",
+      {
+        status: 404,
+        message:
+          "Hosted round was not found.",
+      },
+    );
+  }
+
+  const entitlement =
+    await repository.getEntitlementById(
+      discoveredRound.entitlementId,
+      {forUpdate: true},
+    );
+
+  if (!entitlement) {
+    throw new HostedError(
+      "ENTITLEMENT_REQUIRED",
+      {
+        status: 500,
+        message:
+          "Round entitlement was not found.",
+      },
+    );
+  }
+
+  const dailyUsage =
+    await repository.getDailyUsage(
+      entitlement.id,
+      discoveredRound.usageDate,
+      {forUpdate: true},
+    );
+
+  if (!dailyUsage) {
+    throw new HostedError(
+      "INTERNAL_ERROR",
+      {
+        status: 500,
+        message:
+          "Round daily usage state was not found.",
+      },
+    );
+  }
+
+  const round =
+    await repository.getRoundById(
+      roundId,
+      {forUpdate: true},
+    );
+
+  if (!round) {
+    throw new HostedError(
+      "ROUND_NOT_FOUND",
+      {
+        status: 404,
+        message:
+          "Hosted round was not found.",
+      },
+    );
+  }
+
+  if (
+    round.entitlementId !==
+    entitlement.id
+  ) {
+    throw new HostedError(
+      "INTERNAL_ERROR",
+      {
+        status: 500,
+        message:
+          "Round entitlement ownership changed during execution.",
+      },
+    );
+  }
+
+  if (
+    round.usageDate !==
+    dailyUsage.usageDate
+  ) {
+    throw new HostedError(
+      "INTERNAL_ERROR",
+      {
+        status: 500,
+        message:
+          "Round usage date does not match daily usage state.",
+      },
+    );
+  }
+
+  return {
+    round,
+    entitlement,
+    dailyUsage,
+  };
+}
 
 function createRoundAttempts(
   round: HostedRound,
@@ -80,7 +204,8 @@ function createRoundAttempts(
   const timestamp = now.toISOString();
 
   return [1, 2].map((slot) => {
-    const entrantSlot = slot as 1 | 2;
+    const entrantSlot =
+      slot as 1 | 2;
 
     return {
       id: crypto.randomUUID(),
@@ -113,12 +238,13 @@ function configureRoundAttempts(
     typeof getEnabledHostedEntrants
   >,
 ): HostedRoundAttempt[] {
-  const entrantsBySlot = new Map(
-    entrants.map((entrant) => [
-      entrant.slot,
-      entrant,
-    ]),
-  );
+  const entrantsBySlot =
+    new Map(
+      entrants.map((entrant) => [
+        entrant.slot,
+        entrant,
+      ]),
+    );
 
   return attempts.map((attempt) => {
     const entrant =
@@ -138,7 +264,8 @@ function configureRoundAttempts(
     }
 
     if (
-      attempt.roundId !== round.id
+      attempt.roundId !==
+      round.id
     ) {
       throw new HostedError(
         "INTERNAL_ERROR",
@@ -168,21 +295,17 @@ async function prepareExecution(
     async (repository) => {
       const now = clock.now();
 
-      const round =
-        await repository.getRoundById(
+      const locked =
+        await getLockedRoundState(
+          repository,
           input.roundId,
         );
 
-      if (!round) {
-        throw new HostedError(
-          "ROUND_NOT_FOUND",
-          {
-            status: 404,
-            message:
-              "Hosted round was not found.",
-          },
-        );
-      }
+      const {
+        round,
+        entitlement,
+        dailyUsage,
+      } = locked;
 
       if (
         round.status !== "reserved" &&
@@ -196,39 +319,6 @@ async function prepareExecution(
             status: 409,
             message:
               `Hosted round cannot start from status "${round.status}".`,
-          },
-        );
-      }
-
-      const entitlement =
-        await repository.getEntitlementById(
-          round.entitlementId,
-        );
-
-      if (!entitlement) {
-        throw new HostedError(
-          "ENTITLEMENT_REQUIRED",
-          {
-            status: 500,
-            message:
-              "Round entitlement was not found.",
-          },
-        );
-      }
-
-      const dailyUsage =
-        await repository.getDailyUsage(
-          entitlement.id,
-          round.usageDate,
-        );
-
-      if (!dailyUsage) {
-        throw new HostedError(
-          "INTERNAL_ERROR",
-          {
-            status: 500,
-            message:
-              "Round daily usage state was not found.",
           },
         );
       }
@@ -253,10 +343,11 @@ async function prepareExecution(
         );
 
       if (attempts.length === 0) {
-        attempts = createRoundAttempts(
-          round,
-          now,
-        );
+        attempts =
+          createRoundAttempts(
+            round,
+            now,
+          );
 
         attempts =
           configureRoundAttempts(
@@ -287,12 +378,15 @@ async function prepareExecution(
       const executionAttempts =
         attempts.filter(
           (attempt) =>
-            attempt.status === "pending" ||
-            attempt.status === "retryable",
+            attempt.status ===
+              "pending" ||
+            attempt.status ===
+              "retryable",
         );
 
       if (
-        executionAttempts.length === 0
+        executionAttempts.length ===
+        0
       ) {
         throw new HostedError(
           "ROUND_NOT_EXECUTABLE",
@@ -312,7 +406,10 @@ async function prepareExecution(
       const timestamp =
         now.toISOString();
 
-      for (const attempt of executionAttempts) {
+      for (
+        const attempt of
+          executionAttempts
+      ) {
         assertAttemptTransition(
           attempt.status,
           "running",
@@ -320,10 +417,12 @@ async function prepareExecution(
 
         const runningAttempt = {
           ...attempt,
-          status: "running" as const,
+          status:
+            "running" as const,
           startedAt:
             timestamp,
-          updatedAt: timestamp,
+          updatedAt:
+            timestamp,
         } as HostedRoundAttempt & {
           updatedAt?: string;
         };
@@ -338,14 +437,16 @@ async function prepareExecution(
         );
       }
 
-      const runningRound: HostedRound = {
-        ...round,
-        status: "running",
-        startedAt:
-          round.startedAt ??
-          timestamp,
-        updatedAt: timestamp,
-      };
+      const runningRound: HostedRound =
+        {
+          ...round,
+          status: "running",
+          startedAt:
+            round.startedAt ??
+            timestamp,
+          updatedAt:
+            timestamp,
+        };
 
       await repository.updateRound(
         runningRound,
@@ -381,11 +482,12 @@ function buildAttemptUpdate(
   const timestamp =
     now.toISOString();
 
-  const status = result.ok
-    ? "completed"
-    : result.retryable
-      ? "retryable"
-      : "failed";
+  const status =
+    result.ok
+      ? "completed"
+      : result.retryable
+        ? "retryable"
+        : "failed";
 
   return {
     ...attempt,
@@ -423,23 +525,22 @@ async function persistExecution(
     async (repository) => {
       const now = clock.now();
 
-      const round =
-        await repository.getRoundById(
+      const locked =
+        await getLockedRoundState(
+          repository,
           input.roundId,
         );
 
-      if (!round) {
-        throw new HostedError(
-          "ROUND_NOT_FOUND",
-          {
-            status: 404,
-            message:
-              "Hosted round was not found.",
-          },
-        );
-      }
+      const {
+        round,
+        entitlement,
+        dailyUsage,
+      } = locked;
 
-      if (round.status !== "running") {
+      if (
+        round.status !==
+        "running"
+      ) {
         throw new HostedError(
           "ROUND_NOT_EXECUTABLE",
           {
@@ -450,42 +551,10 @@ async function persistExecution(
         );
       }
 
-      const entitlement =
-        await repository.getEntitlementById(
-          round.entitlementId,
-        );
-
-      if (!entitlement) {
-        throw new HostedError(
-          "ENTITLEMENT_REQUIRED",
-          {
-            status: 500,
-            message:
-              "Round entitlement was not found.",
-          },
-        );
-      }
-
-      const dailyUsage =
-        await repository.getDailyUsage(
-          entitlement.id,
-          round.usageDate,
-        );
-
-      if (!dailyUsage) {
-        throw new HostedError(
-          "INTERNAL_ERROR",
-          {
-            status: 500,
-            message:
-              "Round daily usage state was not found.",
-          },
-        );
-      }
-
       const existingAttempts =
         await repository.getRoundAttempts(
           round.id,
+          {forUpdate: true},
         );
 
       const resultsByAttemptId =
@@ -498,7 +567,10 @@ async function persistExecution(
           ),
         );
 
-      for (const attempt of existingAttempts) {
+      for (
+        const attempt of
+          existingAttempts
+      ) {
         const result =
           resultsByAttemptId.get(
             attempt.id,
@@ -523,6 +595,7 @@ async function persistExecution(
       const updatedAttempts =
         await repository.getRoundAttempts(
           round.id,
+          {forUpdate: true},
         );
 
       assertExpectedAttemptSlots(
@@ -680,42 +753,39 @@ async function releaseUnexpectedExecutionFailure(
       const hostedError =
         toHostedError(error);
 
-      const round =
-        await repository.getRoundById(
-          input.roundId,
-        );
+      let locked:
+        | LockedRoundState
+        | null = null;
 
-      if (!round) {
+      try {
+        locked =
+          await getLockedRoundState(
+            repository,
+            input.roundId,
+          );
+      } catch {
         throw hostedError;
       }
 
-      const entitlement =
-        await repository.getEntitlementById(
-          round.entitlementId,
-        );
-
-      if (!entitlement) {
-        throw hostedError;
-      }
-
-      const dailyUsage =
-        await repository.getDailyUsage(
-          entitlement.id,
-          round.usageDate,
-        );
-
-      if (!dailyUsage) {
-        throw hostedError;
-      }
+      const {
+        round,
+        entitlement,
+        dailyUsage,
+      } = locked;
 
       const attempts =
         await repository.getRoundAttempts(
           round.id,
+          {forUpdate: true},
         );
 
-      for (const attempt of attempts) {
+      for (
+        const attempt of
+          attempts
+      ) {
         if (
-          attempt.status === "running"
+          attempt.status ===
+          "running"
         ) {
           assertAttemptTransition(
             attempt.status,
