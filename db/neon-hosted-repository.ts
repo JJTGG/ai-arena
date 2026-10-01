@@ -7,7 +7,6 @@ import {
   withHostedDbTransaction,
 } from "./client";
 import type {
-  HostedRepository,
   HostedRepositoryQueryOptions,
 } from "../lib/hosted/repository";
 import type {
@@ -1752,7 +1751,7 @@ export class NeonHostedRepository
 
   async executeTransaction<T>(
     callback: (
-      repository: HostedRepository,
+      repository: HostedWebhookRepository,
     ) => Promise<T>,
   ): Promise<T> {
     if (this.inTransaction) {
