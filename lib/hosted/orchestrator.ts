@@ -40,13 +40,31 @@ export async function executeHostedRound(
   input: HostedExecutionInput,
   registry: HostedProviderRegistry,
 ): Promise<HostedExecutionResult> {
-  assertExpectedAttemptSlots(input.attempts, 2);
+  assertExpectedAttemptSlots(
+    input.attempts,
+    2,
+  );
 
   if (input.entrants.length !== 2) {
-    throw new HostedError("INVALID_PROVIDER_RESULT", {
-      status: 500,
-      message: "Hosted rounds require exactly two entrants.",
-    });
+    throw new HostedError(
+      "INVALID_PROVIDER_RESULT",
+      {
+        status: 500,
+        message:
+          "Hosted rounds require exactly two entrants.",
+      },
+    );
+  }
+
+  if (!input.prompt.trim()) {
+    throw new HostedError(
+      "INVALID_PROVIDER_RESULT",
+      {
+        status: 400,
+        message:
+          "Hosted execution requires a prompt.",
+      },
+    );
   }
 
   const entrantBySlot = new Map(
@@ -67,7 +85,8 @@ export async function executeHostedRound(
           "PROVIDER_CONFIGURATION_ERROR",
           {
             status: 500,
-            message: `No enabled provider configuration exists for entrant slot ${attempt.entrantSlot}.`,
+            message:
+              `No enabled provider configuration exists for entrant slot ${attempt.entrantSlot}.`,
           },
         );
       }
@@ -77,12 +96,13 @@ export async function executeHostedRound(
         entrant.provider,
       );
 
-      const result = await provider.generate({
-        prompt: input.prompt,
-        roundId: input.roundId,
-        attemptId: attempt.id,
-        requestId: attempt.attemptKey,
-      });
+      const result =
+        await provider.generate({
+          prompt: input.prompt,
+          roundId: input.roundId,
+          attemptId: attempt.id,
+          requestId: attempt.attemptKey,
+        });
 
       return {
         attemptId: attempt.id,
@@ -94,11 +114,15 @@ export async function executeHostedRound(
     }),
   );
 
-  const normalizedAttempts: HostedRoundAttempt[] =
+  const normalizedAttempts:
+    HostedRoundAttempt[] =
     input.attempts.map((attempt) => {
-      const execution = executionResults.find(
-        (result) => result.attemptId === attempt.id,
-      );
+      const execution =
+        executionResults.find(
+          (result) =>
+            result.attemptId ===
+            attempt.id,
+        );
 
       if (!execution) {
         return attempt;
@@ -112,36 +136,68 @@ export async function executeHostedRound(
             ? "retryable"
             : "failed",
         providerRequestId:
-          execution.result.providerRequestId ?? null,
-        latencyMs: execution.result.latencyMs,
+          execution.result
+            .providerRequestId ??
+          null,
+        latencyMs:
+          execution.result.latencyMs,
+        inputTokens:
+          execution.result
+            .inputTokens ??
+          null,
+        outputTokens:
+          execution.result
+            .outputTokens ??
+          null,
+        responseText:
+          execution.result.text ??
+          null,
         errorCode:
-          execution.result.errorCode ?? null,
+          execution.result.errorCode ??
+          null,
       };
     });
 
-  if (allAttemptsComplete(normalizedAttempts, 2)) {
+  if (
+    allAttemptsComplete(
+      normalizedAttempts,
+      2,
+    )
+  ) {
     return {
       results: executionResults,
       outcome: "completed",
     };
   }
 
-  if (hasRetryableAttempt(normalizedAttempts)) {
+  if (
+    hasRetryableAttempt(
+      normalizedAttempts,
+    )
+  ) {
     return {
       results: executionResults,
       outcome: "retryable",
     };
   }
 
-  if (hasFailedAttempt(normalizedAttempts)) {
+  if (
+    hasFailedAttempt(
+      normalizedAttempts,
+    )
+  ) {
     return {
       results: executionResults,
       outcome: "failed",
     };
   }
 
-  throw new HostedError("INVALID_PROVIDER_RESULT", {
-    status: 500,
-    message: "Provider execution produced an invalid round state.",
-  });
+  throw new HostedError(
+    "INVALID_PROVIDER_RESULT",
+    {
+      status: 500,
+      message:
+        "Provider execution produced an invalid round state.",
+    },
+  );
 }
