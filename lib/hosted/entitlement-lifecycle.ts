@@ -31,53 +31,93 @@ export function createEntitlementFromConfirmedPayment(
     );
   }
 
-  if (!input.accountId.trim()) {
-    throw new HostedError("ACCOUNT_REQUIRED", {
-      status: 400,
-      message: "Account ID is required.",
-    });
+  const accountId =
+    input.accountId.trim();
+
+  if (!accountId) {
+    throw new HostedError(
+      "ACCOUNT_REQUIRED",
+      {
+        status: 400,
+        message:
+          "Account ID is required.",
+      },
+    );
+  }
+
+  if (
+    input.payment.accountId !==
+    accountId
+  ) {
+    throw new HostedError(
+      "INTERNAL_ERROR",
+      {
+        status: 500,
+        message:
+          "The confirmed payment does not belong to the entitlement account.",
+      },
+    );
   }
 
   const usageTimezone =
     input.usageTimezone.trim();
 
   if (!usageTimezone) {
-    throw new HostedError("INTERNAL_ERROR", {
-      status: 500,
-      message: "Usage timezone is required.",
-    });
+    throw new HostedError(
+      "INTERNAL_ERROR",
+      {
+        status: 500,
+        message:
+          "Usage timezone is required.",
+      },
+    );
   }
 
   if (
-    !isValidTimeZone(usageTimezone)
+    !isValidTimeZone(
+      usageTimezone,
+    )
   ) {
-    throw new HostedError("INTERNAL_ERROR", {
-      status: 500,
-      message:
-        `Invalid Hosted usage timezone "${usageTimezone}".`,
-    });
+    throw new HostedError(
+      "INTERNAL_ERROR",
+      {
+        status: 500,
+        message:
+          `Invalid Hosted usage timezone "${usageTimezone}".`,
+      },
+    );
   }
 
-  const startsAt = new Date(input.startsAt);
-  const expiresAt = addDays(
-    startsAt,
-    input.config.durationDays,
-  );
+  const startsAt =
+    new Date(input.startsAt);
+
+  const expiresAt =
+    addDays(
+      startsAt,
+      input.config.durationDays,
+    );
 
   return {
     id: crypto.randomUUID(),
-    accountId: input.accountId,
-    paymentId: input.payment.id,
+    accountId,
+    paymentId:
+      input.payment.id,
     status: "active",
-    startsAt: startsAt.toISOString(),
-    expiresAt: expiresAt.toISOString(),
-    totalRounds: input.config.totalRounds,
+    startsAt:
+      startsAt.toISOString(),
+    expiresAt:
+      expiresAt.toISOString(),
+    totalRounds:
+      input.config.totalRounds,
     completedRounds: 0,
     reservedRounds: 0,
-    dailyLimit: input.config.dailyLimit,
+    dailyLimit:
+      input.config.dailyLimit,
     usageTimezone,
-    createdAt: startsAt.toISOString(),
-    updatedAt: startsAt.toISOString(),
+    createdAt:
+      startsAt.toISOString(),
+    updatedAt:
+      startsAt.toISOString(),
   };
 }
 
@@ -102,12 +142,18 @@ export function shouldExpireEntitlement(
   entitlement: HostedEntitlement,
   now: Date = new Date(),
 ): boolean {
-  if (entitlement.status !== "active") {
+  if (
+    entitlement.status !==
+    "active"
+  ) {
     return false;
   }
 
-  return now >= new Date(
-    entitlement.expiresAt,
+  return (
+    now >=
+    new Date(
+      entitlement.expiresAt,
+    )
   );
 }
 
@@ -127,7 +173,8 @@ export function expireEntitlement(
   return {
     ...entitlement,
     status: "expired",
-    updatedAt: now.toISOString(),
+    updatedAt:
+      now.toISOString(),
   };
 }
 
@@ -135,7 +182,10 @@ export function suspendEntitlement(
   entitlement: HostedEntitlement,
   now: Date = new Date(),
 ): HostedEntitlement {
-  if (entitlement.status !== "active") {
+  if (
+    entitlement.status !==
+    "active"
+  ) {
     throw new HostedError(
       "ENTITLEMENT_REQUIRED",
       {
@@ -149,6 +199,7 @@ export function suspendEntitlement(
   return {
     ...entitlement,
     status: "suspended",
-    updatedAt: now.toISOString(),
+    updatedAt:
+      now.toISOString(),
   };
 }
