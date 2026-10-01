@@ -35,7 +35,7 @@ export default function GuidePage() {
     <main className={styles.guidePage}>
       <div className={styles.guideShell}>
         <header className={styles.header}>
-          <Link href="/" className={styles.backLink}>
+          <Link href="/arena" className={styles.backLink}>
             ← Back to Arena
           </Link>
 
@@ -339,7 +339,7 @@ export default function GuidePage() {
               ))}
             </div>
 
-            <Link href="/" className={styles.railAction}>
+            <Link href="/arena" className={styles.railAction}>
               Enter the Arena →
             </Link>
           </aside>
@@ -350,7 +350,7 @@ export default function GuidePage() {
             AI Arena · V1 · BYOK
           </span>
 
-          <Link href="/" className={styles.footerLink}>
+          <Link href="/arena" className={styles.footerLink}>
             Back to Arena →
           </Link>
         </footer>
