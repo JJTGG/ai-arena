@@ -7,6 +7,10 @@ import type {
   HostedRoundAttempt,
 } from "./types";
 
+export type HostedRepositoryQueryOptions = {
+  forUpdate?: boolean;
+};
+
 export interface HostedRepository {
   getAccountByAuthSubjectId(
     authSubjectId: string,
@@ -22,10 +26,12 @@ export interface HostedRepository {
 
   getActiveEntitlement(
     accountId: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedEntitlement | null>;
 
   getEntitlementById(
     entitlementId: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedEntitlement | null>;
 
   createEntitlement(
@@ -39,6 +45,7 @@ export interface HostedRepository {
   getDailyUsage(
     entitlementId: string,
     usageDate: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedDailyUsage | null>;
 
   createDailyUsage(
@@ -51,11 +58,13 @@ export interface HostedRepository {
 
   getPaymentById(
     paymentId: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedPayment | null>;
 
   getPaymentByProviderReference(
     provider: string,
     providerPaymentReference: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedPayment | null>;
 
   createPayment(
@@ -68,11 +77,13 @@ export interface HostedRepository {
 
   getRoundById(
     roundId: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedRound | null>;
 
   getRoundByIdempotencyKey(
     entitlementId: string,
     idempotencyKey: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedRound | null>;
 
   createRound(
@@ -85,6 +96,7 @@ export interface HostedRepository {
 
   getRoundAttempts(
     roundId: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedRoundAttempt[]>;
 
   createRoundAttempt(
