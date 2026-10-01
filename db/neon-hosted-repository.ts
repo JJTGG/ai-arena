@@ -6,7 +6,10 @@ import {
   createHostedDbClient,
   withHostedDbTransaction,
 } from "./client";
-import type { HostedRepository } from "../lib/hosted/repository";
+import type {
+  HostedRepository,
+  HostedRepositoryQueryOptions,
+} from "../lib/hosted/repository";
 import type {
   HostedAccount,
   HostedDailyUsage,
@@ -453,10 +456,17 @@ export class NeonHostedRepository
     );
   }
 
-  private lockClause(): string {
-    return this.inTransaction
-      ? " FOR UPDATE"
-      : "";
+  private lockClause(
+    options?: HostedRepositoryQueryOptions,
+  ): string {
+    if (
+      !this.inTransaction ||
+      !options?.forUpdate
+    ) {
+      return "";
+    }
+
+    return " FOR UPDATE";
   }
 
   async getAccountByAuthSubjectId(
@@ -477,7 +487,6 @@ export class NeonHostedRepository
           FROM hosted_accounts
           WHERE auth_subject_id = $1
           LIMIT 1
-          ${this.lockClause()}
         `,
         [authSubjectId],
       );
@@ -505,7 +514,6 @@ export class NeonHostedRepository
           FROM hosted_accounts
           WHERE id = $1
           LIMIT 1
-          ${this.lockClause()}
         `,
         [accountId],
       );
@@ -587,6 +595,7 @@ export class NeonHostedRepository
 
   async getActiveEntitlement(
     accountId: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedEntitlement | null> {
     const rows =
       await this.query<EntitlementRow>(
@@ -609,7 +618,7 @@ export class NeonHostedRepository
           WHERE account_id = $1
             AND status = 'active'
           LIMIT 1
-          ${this.lockClause()}
+          ${this.lockClause(options)}
         `,
         [accountId],
       );
@@ -621,6 +630,7 @@ export class NeonHostedRepository
 
   async getEntitlementById(
     entitlementId: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedEntitlement | null> {
     const rows =
       await this.query<EntitlementRow>(
@@ -642,7 +652,7 @@ export class NeonHostedRepository
           FROM hosted_entitlements
           WHERE id = $1
           LIMIT 1
-          ${this.lockClause()}
+          ${this.lockClause(options)}
         `,
         [entitlementId],
       );
@@ -790,6 +800,7 @@ export class NeonHostedRepository
   async getDailyUsage(
     entitlementId: string,
     usageDate: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedDailyUsage | null> {
     const rows =
       await this.query<DailyUsageRow>(
@@ -806,7 +817,7 @@ export class NeonHostedRepository
           WHERE entitlement_id = $1
             AND usage_date = $2
           LIMIT 1
-          ${this.lockClause()}
+          ${this.lockClause(options)}
         `,
         [
           entitlementId,
@@ -921,6 +932,7 @@ export class NeonHostedRepository
 
   async getPaymentById(
     paymentId: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedPayment | null> {
     const rows =
       await this.query<PaymentRow>(
@@ -940,7 +952,7 @@ export class NeonHostedRepository
           FROM hosted_payments
           WHERE id = $1
           LIMIT 1
-          ${this.lockClause()}
+          ${this.lockClause(options)}
         `,
         [paymentId],
       );
@@ -953,6 +965,7 @@ export class NeonHostedRepository
   async getPaymentByProviderReference(
     provider: string,
     providerPaymentReference: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedPayment | null> {
     const rows =
       await this.query<PaymentRow>(
@@ -973,7 +986,7 @@ export class NeonHostedRepository
           WHERE provider = $1
             AND provider_payment_reference = $2
           LIMIT 1
-          ${this.lockClause()}
+          ${this.lockClause(options)}
         `,
         [
           provider,
@@ -1109,6 +1122,7 @@ export class NeonHostedRepository
 
   async getRoundById(
     roundId: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedRound | null> {
     const rows =
       await this.query<RoundRow>(
@@ -1130,7 +1144,7 @@ export class NeonHostedRepository
           FROM hosted_rounds
           WHERE id = $1
           LIMIT 1
-          ${this.lockClause()}
+          ${this.lockClause(options)}
         `,
         [roundId],
       );
@@ -1143,6 +1157,7 @@ export class NeonHostedRepository
   async getRoundByIdempotencyKey(
     entitlementId: string,
     idempotencyKey: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedRound | null> {
     const rows =
       await this.query<RoundRow>(
@@ -1165,7 +1180,7 @@ export class NeonHostedRepository
           WHERE entitlement_id = $1
             AND idempotency_key = $2
           LIMIT 1
-          ${this.lockClause()}
+          ${this.lockClause(options)}
         `,
         [
           entitlementId,
@@ -1315,6 +1330,7 @@ export class NeonHostedRepository
 
   async getRoundAttempts(
     roundId: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedRoundAttempt[]> {
     const rows =
       await this.query<RoundAttemptRow>(
@@ -1342,7 +1358,7 @@ export class NeonHostedRepository
           ORDER BY
             entrant_slot ASC,
             attempt_number ASC
-          ${this.lockClause()}
+          ${this.lockClause(options)}
         `,
         [roundId],
       );
