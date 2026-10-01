@@ -11,10 +11,13 @@ import type {
   HostedRound,
 } from "./types";
 
+const MAX_HOSTED_PROMPT_LENGTH = 20_000;
+
 export type ReserveRoundInput = {
   entitlement: HostedEntitlement;
   dailyUsage: HostedDailyUsage;
   idempotencyKey: string;
+  prompt: string;
   now: Date;
 };
 
@@ -41,6 +44,33 @@ export function validateRoundReservation(
     );
   }
 
+  const prompt = input.prompt.trim();
+
+  if (!prompt) {
+    throw new HostedError(
+      "INVALID_PROVIDER_RESULT",
+      {
+        status: 400,
+        message:
+          "A prompt is required to reserve a Hosted round.",
+      },
+    );
+  }
+
+  if (
+    prompt.length >
+    MAX_HOSTED_PROMPT_LENGTH
+  ) {
+    throw new HostedError(
+      "INVALID_PROVIDER_RESULT",
+      {
+        status: 400,
+        message:
+          "The Hosted prompt is too long.",
+      },
+    );
+  }
+
   if (
     input.dailyUsage.entitlementId !==
     input.entitlement.id
@@ -55,11 +85,13 @@ export function validateRoundReservation(
     );
   }
 
-  if (!canReserveRound(
-    input.entitlement,
-    input.dailyUsage,
-    input.now,
-  )) {
+  if (
+    !canReserveRound(
+      input.entitlement,
+      input.dailyUsage,
+      input.now,
+    )
+  ) {
     if (
       input.entitlement.completedRounds +
         input.entitlement.reservedRounds >=
@@ -96,7 +128,9 @@ export function createReservedRound(
   return {
     id: crypto.randomUUID(),
     entitlementId: input.entitlement.id,
-    idempotencyKey: input.idempotencyKey.trim(),
+    idempotencyKey:
+      input.idempotencyKey.trim(),
+    prompt: input.prompt.trim(),
     usageDate: getUtcDateKey(input.now),
     status: "reserved",
     reservedAt: now,
