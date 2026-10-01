@@ -106,6 +106,7 @@ export type HostedPayment = {
   accountId: string;
   provider: string;
   providerPaymentReference: string;
+  providerTransactionReference: string | null;
   checkoutReference: string | null;
   amountMinor: number;
   currency: string;
