@@ -1608,6 +1608,20 @@ export class NeonHostedRepository
   async createWebhookEvent(
     event: HostedWebhookEvent,
   ): Promise<HostedWebhookEvent> {
+    /*
+     * Webhook event creation is also the acquisition point
+     * for idempotent webhook processing.
+     *
+     * If this transaction creates the event, RETURNING gives
+     * us the newly inserted row.
+     *
+     * If another transaction already created the same
+     * provider/event pair, the unique constraint is handled
+     * by ON CONFLICT DO NOTHING. The existing row is then
+     * loaded. When this repository is operating inside an
+     * active transaction, the fallback SELECT locks that row
+     * before returning it.
+     */
     const rows =
       await this.query<WebhookEventRow>(
         `
@@ -1629,6 +1643,11 @@ export class NeonHostedRepository
             $6,
             $7
           )
+          ON CONFLICT (
+            provider,
+            provider_event_id
+          )
+          DO NOTHING
           RETURNING
             id,
             provider,
@@ -1649,9 +1668,40 @@ export class NeonHostedRepository
         ],
       );
 
+    if (rows[0]) {
+      return mapWebhookEvent(
+        rows[0],
+      );
+    }
+
+    const existingRows =
+      await this.query<WebhookEventRow>(
+        `
+          SELECT
+            id,
+            provider,
+            provider_event_id,
+            payment_id,
+            received_at,
+            processed_at,
+            status
+          FROM hosted_payment_webhook_events
+          WHERE provider = $1
+            AND provider_event_id = $2
+          LIMIT 1
+          ${this.lockClause({
+            forUpdate: true,
+          })}
+        `,
+        [
+          event.provider,
+          event.providerEventId,
+        ],
+      );
+
     return mapWebhookEvent(
       requireRow(
-        rows,
+        existingRows,
         "webhook event",
       ),
     );
