@@ -1,5 +1,6 @@
 import { HostedError } from "./errors";
 import {
+  assertAttemptRunnable,
   assertExpectedAttemptSlots,
   allAttemptsComplete,
   hasFailedAttempt,
@@ -74,89 +75,118 @@ export async function executeHostedRound(
     ]),
   );
 
-  const executionResults = await Promise.all(
-    input.attempts.map(async (attempt) => {
-      const entrant = entrantBySlot.get(
-        attempt.entrantSlot,
-      );
+  const runnableAttempts =
+    input.attempts.filter(
+      (attempt) =>
+        attempt.status === "pending" ||
+        attempt.status === "retryable",
+    );
 
-      if (!entrant || !entrant.enabled) {
-        throw new HostedError(
-          "PROVIDER_CONFIGURATION_ERROR",
-          {
-            status: 500,
-            message:
-              `No enabled provider configuration exists for entrant slot ${attempt.entrantSlot}.`,
-          },
-        );
-      }
+  const executionResults =
+    await Promise.all(
+      runnableAttempts.map(
+        async (attempt) => {
+          assertAttemptRunnable(
+            attempt,
+          );
 
-      const provider = getHostedProvider(
-        registry,
-        entrant.provider,
-      );
+          const entrant =
+            entrantBySlot.get(
+              attempt.entrantSlot,
+            );
 
-      const result =
-        await provider.generate({
-          prompt: input.prompt,
-          roundId: input.roundId,
-          attemptId: attempt.id,
-          requestId: attempt.attemptKey,
-        });
+          if (
+            !entrant ||
+            !entrant.enabled
+          ) {
+            throw new HostedError(
+              "PROVIDER_CONFIGURATION_ERROR",
+              {
+                status: 500,
+                message:
+                  `No enabled provider configuration exists for entrant slot ${attempt.entrantSlot}.`,
+              },
+            );
+          }
 
-      return {
-        attemptId: attempt.id,
-        entrantSlot: attempt.entrantSlot,
-        provider: entrant.provider,
-        model: entrant.model,
-        result,
-      };
-    }),
-  );
+          const provider =
+            getHostedProvider(
+              registry,
+              entrant.provider,
+            );
+
+          const result =
+            await provider.generate({
+              prompt: input.prompt,
+              roundId: input.roundId,
+              attemptId: attempt.id,
+              requestId:
+                attempt.attemptKey,
+            });
+
+          return {
+            attemptId: attempt.id,
+            entrantSlot:
+              attempt.entrantSlot,
+            provider:
+              entrant.provider,
+            model: attempt.model,
+            result,
+          };
+        },
+      ),
+    );
 
   const normalizedAttempts:
     HostedRoundAttempt[] =
-    input.attempts.map((attempt) => {
-      const execution =
-        executionResults.find(
-          (result) =>
-            result.attemptId ===
-            attempt.id,
-        );
+    input.attempts.map(
+      (attempt) => {
+        const execution =
+          executionResults.find(
+            (result) =>
+              result.attemptId ===
+              attempt.id,
+          );
 
-      if (!execution) {
-        return attempt;
-      }
+        if (!execution) {
+          return attempt;
+        }
 
-      return {
-        ...attempt,
-        status: execution.result.ok
-          ? "completed"
-          : execution.result.retryable
-            ? "retryable"
-            : "failed",
-        providerRequestId:
-          execution.result
-            .providerRequestId ??
-          null,
-        latencyMs:
-          execution.result.latencyMs,
-        inputTokens:
-          execution.result
-            .inputTokens ??
-          null,
-        outputTokens:
-          execution.result
-            .outputTokens ??
-          null,
-        responseText:
-          execution.result.text ??
-          null,
-        errorCode:
-          execution.result.errorCode ??
-          null,
-      };
-    });
+        return {
+          ...attempt,
+          status:
+            execution.result.ok
+              ? "completed"
+              : execution.result
+                    .retryable
+                ? "retryable"
+                : "failed",
+          providerRequestId:
+            execution.result
+              .providerRequestId ??
+            null,
+          latencyMs:
+            execution.result
+              .latencyMs,
+          inputTokens:
+            execution.result
+              .inputTokens ??
+            null,
+          outputTokens:
+            execution.result
+              .outputTokens ??
+            null,
+          responseText:
+            execution.result
+              .text ??
+            null,
+          errorCode:
+            execution.result
+              .errorCode ??
+            null,
+        };
+      },
+    );
 
   if (
     allAttemptsComplete(
@@ -165,8 +195,10 @@ export async function executeHostedRound(
     )
   ) {
     return {
-      results: executionResults,
-      outcome: "completed",
+      results:
+        executionResults,
+      outcome:
+        "completed",
     };
   }
 
@@ -176,8 +208,10 @@ export async function executeHostedRound(
     )
   ) {
     return {
-      results: executionResults,
-      outcome: "retryable",
+      results:
+        executionResults,
+      outcome:
+        "retryable",
     };
   }
 
@@ -187,8 +221,10 @@ export async function executeHostedRound(
     )
   ) {
     return {
-      results: executionResults,
-      outcome: "failed",
+      results:
+        executionResults,
+      outcome:
+        "failed",
     };
   }
 
