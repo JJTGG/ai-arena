@@ -7,13 +7,17 @@ const hostedEntrants: HostedEntrantConfig[] = [
   {
     slot: 1,
     provider: "gemini",
-    model: process.env.HOSTED_GEMINI_MODEL ?? "gemini-2.5-flash",
+    model:
+      process.env.HOSTED_GEMINI_MODEL ??
+      "gemini-3.8-flash",
     enabled: true,
   },
   {
     slot: 2,
     provider: "groq",
-    model: process.env.HOSTED_GROQ_MODEL ?? "llama-3.3-70b-versatile",
+    model:
+      process.env.HOSTED_GROQ_MODEL ??
+      "openai/gpt-oss-120b",
     enabled: true,
   },
 ];
@@ -27,36 +31,61 @@ export const hostedConfig: HostedConfig = {
 };
 
 export function getEnabledHostedEntrants(): HostedEntrantConfig[] {
-  return hostedConfig.entrants.filter((entrant) => entrant.enabled);
+  return hostedConfig.entrants.filter(
+    (entrant) => entrant.enabled,
+  );
 }
 
 export function validateHostedConfig(): void {
-  const enabledEntrants = getEnabledHostedEntrants();
+  const enabledEntrants =
+    getEnabledHostedEntrants();
 
   if (hostedConfig.totalRounds <= 0) {
-    throw new Error("HOSTED_CONFIG_INVALID_TOTAL_ROUNDS");
+    throw new Error(
+      "HOSTED_CONFIG_INVALID_TOTAL_ROUNDS",
+    );
   }
 
   if (hostedConfig.dailyLimit <= 0) {
-    throw new Error("HOSTED_CONFIG_INVALID_DAILY_LIMIT");
+    throw new Error(
+      "HOSTED_CONFIG_INVALID_DAILY_LIMIT",
+    );
   }
 
   if (hostedConfig.durationDays <= 0) {
-    throw new Error("HOSTED_CONFIG_INVALID_DURATION");
+    throw new Error(
+      "HOSTED_CONFIG_INVALID_DURATION",
+    );
   }
 
   if (hostedConfig.entrantCount !== 2) {
-    throw new Error("HOSTED_CONFIG_INVALID_ENTRANT_COUNT");
+    throw new Error(
+      "HOSTED_CONFIG_INVALID_ENTRANT_COUNT",
+    );
   }
 
-  if (enabledEntrants.length !== hostedConfig.entrantCount) {
-    throw new Error("HOSTED_CONFIG_INVALID_ENABLED_ENTRANTS");
+  if (
+    enabledEntrants.length !==
+    hostedConfig.entrantCount
+  ) {
+    throw new Error(
+      "HOSTED_CONFIG_INVALID_ENABLED_ENTRANTS",
+    );
   }
 
-  const slots = new Set(enabledEntrants.map((entrant) => entrant.slot));
+  const slots = new Set(
+    enabledEntrants.map(
+      (entrant) => entrant.slot,
+    ),
+  );
 
-  if (slots.size !== hostedConfig.entrantCount) {
-    throw new Error("HOSTED_CONFIG_DUPLICATE_ENTRANT_SLOT");
+  if (
+    slots.size !==
+    hostedConfig.entrantCount
+  ) {
+    throw new Error(
+      "HOSTED_CONFIG_DUPLICATE_ENTRANT_SLOT",
+    );
   }
 
   for (const entrant of enabledEntrants) {
