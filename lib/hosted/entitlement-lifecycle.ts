@@ -1,5 +1,8 @@
 import { HostedError } from "./errors";
-import { addDays } from "./clock";
+import {
+  addDays,
+  isValidTimeZone,
+} from "./clock";
 import type {
   HostedConfig,
   HostedEntitlement,
@@ -35,10 +38,23 @@ export function createEntitlementFromConfirmedPayment(
     });
   }
 
-  if (!input.usageTimezone.trim()) {
+  const usageTimezone =
+    input.usageTimezone.trim();
+
+  if (!usageTimezone) {
     throw new HostedError("INTERNAL_ERROR", {
       status: 500,
       message: "Usage timezone is required.",
+    });
+  }
+
+  if (
+    !isValidTimeZone(usageTimezone)
+  ) {
+    throw new HostedError("INTERNAL_ERROR", {
+      status: 500,
+      message:
+        `Invalid Hosted usage timezone "${usageTimezone}".`,
     });
   }
 
@@ -59,7 +75,7 @@ export function createEntitlementFromConfirmedPayment(
     completedRounds: 0,
     reservedRounds: 0,
     dailyLimit: input.config.dailyLimit,
-    usageTimezone: input.usageTimezone,
+    usageTimezone,
     createdAt: startsAt.toISOString(),
     updatedAt: startsAt.toISOString(),
   };
@@ -90,14 +106,21 @@ export function shouldExpireEntitlement(
     return false;
   }
 
-  return now >= new Date(entitlement.expiresAt);
+  return now >= new Date(
+    entitlement.expiresAt,
+  );
 }
 
 export function expireEntitlement(
   entitlement: HostedEntitlement,
   now: Date = new Date(),
 ): HostedEntitlement {
-  if (!shouldExpireEntitlement(entitlement, now)) {
+  if (
+    !shouldExpireEntitlement(
+      entitlement,
+      now,
+    )
+  ) {
     return entitlement;
   }
 
