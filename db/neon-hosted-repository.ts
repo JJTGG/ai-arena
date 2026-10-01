@@ -11,6 +11,10 @@ import type {
   HostedRepositoryQueryOptions,
 } from "../lib/hosted/repository";
 import type {
+  HostedWebhookEvent,
+  HostedWebhookRepository,
+} from "../lib/hosted/webhook-repository";
+import type {
   HostedAccount,
   HostedDailyUsage,
   HostedEntitlement,
@@ -111,6 +115,16 @@ type RoundAttemptRow = SqlRow & {
   response_text: string | null;
   error_code: HostedRoundAttempt["errorCode"];
   created_at: TimestampValue;
+};
+
+type WebhookEventRow = SqlRow & {
+  id: string;
+  provider: string;
+  provider_event_id: string;
+  payment_id: string | null;
+  received_at: TimestampValue;
+  processed_at: TimestampValue | null;
+  status: HostedWebhookEvent["status"];
 };
 
 function toIsoString(
@@ -224,7 +238,8 @@ function mapPayment(
       row.amount_minor,
     currency:
       row.currency,
-    status: row.status,
+    status:
+      row.status,
     createdAt:
       toIsoString(
         row.created_at,
@@ -249,7 +264,8 @@ function mapEntitlement(
       row.account_id,
     paymentId:
       row.payment_id,
-    status: row.status,
+    status:
+      row.status,
     startsAt:
       toIsoString(
         row.starts_at,
@@ -314,12 +330,14 @@ function mapRound(
       row.entitlement_id,
     idempotencyKey:
       row.idempotency_key,
-    prompt: row.prompt,
+    prompt:
+      row.prompt,
     usageDate:
       toDateKey(
         row.usage_date,
       ),
-    status: row.status,
+    status:
+      row.status,
     reservedAt:
       toIsoString(
         row.reserved_at,
@@ -395,8 +413,32 @@ function mapRoundAttempt(
   };
 }
 
+function mapWebhookEvent(
+  row: WebhookEventRow,
+): HostedWebhookEvent {
+  return {
+    id: row.id,
+    provider:
+      row.provider,
+    providerEventId:
+      row.provider_event_id,
+    paymentId:
+      row.payment_id,
+    receivedAt:
+      toIsoString(
+        row.received_at,
+      ),
+    processedAt:
+      nullableIsoString(
+        row.processed_at,
+      ),
+    status:
+      row.status,
+  };
+}
+
 export class NeonHostedRepository
-  implements HostedRepository
+  implements HostedWebhookRepository
 {
   private readonly client:
     | Client
@@ -918,6 +960,7 @@ export class NeonHostedRepository
           usage.usageDate,
           usage.reservedRounds,
           usage.completedRounds,
+          usage.createdAt,
           usage.updatedAt,
         ],
       );
@@ -1531,6 +1574,132 @@ export class NeonHostedRepository
     );
   }
 
+  async getWebhookEvent(
+    provider: string,
+    providerEventId: string,
+  ): Promise<HostedWebhookEvent | null> {
+    const rows =
+      await this.query<WebhookEventRow>(
+        `
+          SELECT
+            id,
+            provider,
+            provider_event_id,
+            payment_id,
+            received_at,
+            processed_at,
+            status
+          FROM hosted_payment_webhook_events
+          WHERE provider = $1
+            AND provider_event_id = $2
+          LIMIT 1
+        `,
+        [
+          provider,
+          providerEventId,
+        ],
+      );
+
+    return rows[0]
+      ? mapWebhookEvent(rows[0])
+      : null;
+  }
+
+  async createWebhookEvent(
+    event: HostedWebhookEvent,
+  ): Promise<HostedWebhookEvent> {
+    const rows =
+      await this.query<WebhookEventRow>(
+        `
+          INSERT INTO hosted_payment_webhook_events (
+            id,
+            provider,
+            provider_event_id,
+            payment_id,
+            received_at,
+            processed_at,
+            status
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7
+          )
+          RETURNING
+            id,
+            provider,
+            provider_event_id,
+            payment_id,
+            received_at,
+            processed_at,
+            status
+        `,
+        [
+          event.id,
+          event.provider,
+          event.providerEventId,
+          event.paymentId,
+          event.receivedAt,
+          event.processedAt,
+          event.status,
+        ],
+      );
+
+    return mapWebhookEvent(
+      requireRow(
+        rows,
+        "webhook event",
+      ),
+    );
+  }
+
+  async updateWebhookEvent(
+    event: HostedWebhookEvent,
+  ): Promise<HostedWebhookEvent> {
+    const rows =
+      await this.query<WebhookEventRow>(
+        `
+          UPDATE hosted_payment_webhook_events
+          SET
+            provider = $2,
+            provider_event_id = $3,
+            payment_id = $4,
+            received_at = $5,
+            processed_at = $6,
+            status = $7
+          WHERE id = $1
+          RETURNING
+            id,
+            provider,
+            provider_event_id,
+            payment_id,
+            received_at,
+            processed_at,
+            status
+        `,
+        [
+          event.id,
+          event.provider,
+          event.providerEventId,
+          event.paymentId,
+          event.receivedAt,
+          event.processedAt,
+          event.status,
+        ],
+      );
+
+    return mapWebhookEvent(
+      requireRow(
+        rows,
+        "webhook event",
+      ),
+    );
+  }
+
   async executeTransaction<T>(
     callback: (
       repository: HostedRepository,
@@ -1559,6 +1728,6 @@ export class NeonHostedRepository
 }
 
 export function createNeonHostedRepository():
-  HostedRepository {
+  HostedWebhookRepository {
   return new NeonHostedRepository();
 }
