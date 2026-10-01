@@ -357,6 +357,11 @@ export async function confirmHostedPayment(
           );
         }
 
+        assertStoredPaymentMatchesVerifiedPayment(
+          payment,
+          input.payment,
+        );
+
         return {
           webhookEvent,
           payment,
