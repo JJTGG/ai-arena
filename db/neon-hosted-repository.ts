@@ -45,6 +45,7 @@ type PaymentRow = SqlRow & {
   account_id: string;
   provider: string;
   provider_payment_reference: string;
+  provider_transaction_reference: string | null;
   checkout_reference: string | null;
   amount_minor: number;
   currency: string;
@@ -231,6 +232,8 @@ function mapPayment(
       row.provider,
     providerPaymentReference:
       row.provider_payment_reference,
+    providerTransactionReference:
+      row.provider_transaction_reference,
     checkoutReference:
       row.checkout_reference,
     amountMinor:
@@ -984,6 +987,7 @@ export class NeonHostedRepository
             account_id,
             provider,
             provider_payment_reference,
+            provider_transaction_reference,
             checkout_reference,
             amount_minor,
             currency,
@@ -1017,6 +1021,7 @@ export class NeonHostedRepository
             account_id,
             provider,
             provider_payment_reference,
+            provider_transaction_reference,
             checkout_reference,
             amount_minor,
             currency,
@@ -1052,6 +1057,7 @@ export class NeonHostedRepository
             account_id,
             provider,
             provider_payment_reference,
+            provider_transaction_reference,
             checkout_reference,
             amount_minor,
             currency,
@@ -1071,13 +1077,15 @@ export class NeonHostedRepository
             $8,
             $9,
             $10,
-            $11
+            $11,
+            $12
           )
           RETURNING
             id,
             account_id,
             provider,
             provider_payment_reference,
+            provider_transaction_reference,
             checkout_reference,
             amount_minor,
             currency,
@@ -1091,6 +1099,7 @@ export class NeonHostedRepository
           payment.accountId,
           payment.provider,
           payment.providerPaymentReference,
+          payment.providerTransactionReference,
           payment.checkoutReference,
           payment.amountMinor,
           payment.currency,
@@ -1120,18 +1129,20 @@ export class NeonHostedRepository
             account_id = $2,
             provider = $3,
             provider_payment_reference = $4,
-            checkout_reference = $5,
-            amount_minor = $6,
-            currency = $7,
-            status = $8,
-            confirmed_at = $9,
-            reversed_at = $10
+            provider_transaction_reference = $5,
+            checkout_reference = $6,
+            amount_minor = $7,
+            currency = $8,
+            status = $9,
+            confirmed_at = $10,
+            reversed_at = $11
           WHERE id = $1
           RETURNING
             id,
             account_id,
             provider,
             provider_payment_reference,
+            provider_transaction_reference,
             checkout_reference,
             amount_minor,
             currency,
@@ -1145,6 +1156,7 @@ export class NeonHostedRepository
           payment.accountId,
           payment.provider,
           payment.providerPaymentReference,
+          payment.providerTransactionReference,
           payment.checkoutReference,
           payment.amountMinor,
           payment.currency,
