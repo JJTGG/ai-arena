@@ -4,7 +4,10 @@ import {
   assertEntitlementCounters,
   canReserveRound,
 } from "./entitlement";
-import { getUtcDateKey } from "./clock";
+import {
+  getDateKeyInTimeZone,
+  isValidTimeZone,
+} from "./clock";
 import type {
   HostedDailyUsage,
   HostedEntitlement,
@@ -20,6 +23,32 @@ export type ReserveRoundInput = {
   prompt: string;
   now: Date;
 };
+
+function getExpectedUsageDate(
+  entitlement: HostedEntitlement,
+  now: Date,
+): string {
+  const usageTimezone =
+    entitlement.usageTimezone.trim();
+
+  if (
+    !isValidTimeZone(usageTimezone)
+  ) {
+    throw new HostedError(
+      "INTERNAL_ERROR",
+      {
+        status: 500,
+        message:
+          `Hosted entitlement contains an invalid usage timezone "${usageTimezone}".`,
+      },
+    );
+  }
+
+  return getDateKeyInTimeZone(
+    now,
+    usageTimezone,
+  );
+}
 
 export function validateRoundReservation(
   input: ReserveRoundInput,
@@ -85,6 +114,26 @@ export function validateRoundReservation(
     );
   }
 
+  const expectedUsageDate =
+    getExpectedUsageDate(
+      input.entitlement,
+      input.now,
+    );
+
+  if (
+    input.dailyUsage.usageDate !==
+    expectedUsageDate
+  ) {
+    throw new HostedError(
+      "INTERNAL_ERROR",
+      {
+        status: 500,
+        message:
+          "Daily usage does not match the entitlement's current usage date.",
+      },
+    );
+  }
+
   if (
     !canReserveRound(
       input.entitlement,
@@ -127,11 +176,16 @@ export function createReservedRound(
 
   return {
     id: crypto.randomUUID(),
-    entitlementId: input.entitlement.id,
+    entitlementId:
+      input.entitlement.id,
     idempotencyKey:
       input.idempotencyKey.trim(),
     prompt: input.prompt.trim(),
-    usageDate: getUtcDateKey(input.now),
+    usageDate:
+      getExpectedUsageDate(
+        input.entitlement,
+        input.now,
+      ),
     status: "reserved",
     reservedAt: now,
     startedAt: null,
@@ -150,7 +204,10 @@ export function reserveCounters(
   entitlement: HostedEntitlement;
   dailyUsage: HostedDailyUsage;
 } {
-  assertEntitlementCounters(entitlement);
+  assertEntitlementCounters(
+    entitlement,
+  );
+
   assertDailyUsageCounters(
     entitlement,
     dailyUsage,
@@ -178,7 +235,9 @@ export function reserveCounters(
   );
 
   return {
-    entitlement: updatedEntitlement,
-    dailyUsage: updatedDailyUsage,
+    entitlement:
+      updatedEntitlement,
+    dailyUsage:
+      updatedDailyUsage,
   };
 }
