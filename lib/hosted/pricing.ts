@@ -16,7 +16,16 @@ export type HostedPriceRule = {
   currency: HostedCurrency;
 };
 
-const defaultPriceRules: HostedPriceRule[] = [];
+const defaultNigeriaPriceRule: HostedPriceRule = {
+  countryCode: "NG",
+  amountMinor: 650000,
+  currency: "NGN",
+};
+
+const defaultInternationalPrice: HostedPrice = {
+  amountMinor: 500,
+  currency: "USD",
+};
 
 function normalizeCountryCode(
   countryCode: string,
@@ -34,7 +43,7 @@ function loadConfiguredPriceRules(): HostedPriceRule[] {
   const raw = process.env.HOSTED_PRICE_RULES;
 
   if (!raw) {
-    return defaultPriceRules;
+    return [];
   }
 
   try {
@@ -73,14 +82,30 @@ function loadConfiguredPriceRules(): HostedPriceRule[] {
         );
       }
 
+      const countryCode = normalizeCountryCode(
+        typedRule.countryCode,
+      );
+
+      const currency = normalizeCurrency(
+        typedRule.currency,
+      );
+
+      if (!countryCode) {
+        throw new Error(
+          "HOSTED_PRICE_RULE_INVALID_COUNTRY",
+        );
+      }
+
+      if (!currency) {
+        throw new Error(
+          "HOSTED_PRICE_RULE_INVALID_CURRENCY",
+        );
+      }
+
       return {
-        countryCode: normalizeCountryCode(
-          typedRule.countryCode,
-        ),
+        countryCode,
         amountMinor: typedRule.amountMinor,
-        currency: normalizeCurrency(
-          typedRule.currency,
-        ),
+        currency,
       };
     });
   } catch {
@@ -103,22 +128,30 @@ export function resolveHostedPrice(
     );
   }
 
-  const rules = loadConfiguredPriceRules();
+  const configuredRules = loadConfiguredPriceRules();
 
-  const matchingRule = rules.find(
+  const matchingConfiguredRule = configuredRules.find(
     (rule) =>
       rule.countryCode === countryCode,
   );
 
-  if (!matchingRule) {
-    throw new Error(
-      `HOSTED_PRICE_NOT_CONFIGURED:${countryCode}`,
-    );
+  if (matchingConfiguredRule) {
+    return {
+      amountMinor: matchingConfiguredRule.amountMinor,
+      currency: matchingConfiguredRule.currency,
+    };
+  }
+
+  if (countryCode === "NG") {
+    return {
+      amountMinor: defaultNigeriaPriceRule.amountMinor,
+      currency: defaultNigeriaPriceRule.currency,
+    };
   }
 
   return {
-    amountMinor: matchingRule.amountMinor,
-    currency: matchingRule.currency,
+    amountMinor: defaultInternationalPrice.amountMinor,
+    currency: defaultInternationalPrice.currency,
   };
 }
 

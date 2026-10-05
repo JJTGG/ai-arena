@@ -1,0 +1,463 @@
+.page {
+  position: relative;
+}
+
+.topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.toplineLabel,
+.toplineValue,
+.eyebrow,
+.metaLabel,
+.metaValue,
+.stepIndex,
+.stepState {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.toplineLabel,
+.eyebrow,
+.metaLabel,
+.stepIndex {
+  font-size: 0.52rem;
+  color: var(--foreground-subtle);
+}
+
+.toplineValue {
+  font-size: 0.52rem;
+  color: var(--cyan);
+}
+
+.hero {
+  padding: 3.8rem 0 3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.heroCopy {
+  max-width: 47rem;
+}
+
+.heroTitle {
+  margin-top: 0.45rem;
+  font-family: var(--font-display);
+  font-size: clamp(3.8rem, 10vw, 7rem);
+  line-height: 0.86;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.heroTitle span {
+  display: block;
+  color: var(--foreground-muted);
+}
+
+.heroText {
+  max-width: 38rem;
+  margin-top: 1.2rem;
+  color: var(--foreground-muted);
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+.accountLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+}
+
+.accountTag {
+  padding: 0.48rem 0.65rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.1em;
+  color: var(--foreground-muted);
+  overflow-wrap: anywhere;
+}
+
+.stateTag {
+  padding: 0.48rem 0.65rem;
+  border: 1px solid rgba(245, 165, 36, 0.45);
+  background: rgba(245, 165, 36, 0.045);
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.content {
+  padding: 2rem 0 0;
+}
+
+.section {
+  border-top: 1px solid var(--border);
+  padding: 0.8rem 0 2rem;
+}
+
+.section + .section {
+  margin-top: 1.5rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sectionTitle {
+  margin-top: 0.35rem;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 0.94;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.sectionNote {
+  max-width: 14rem;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  line-height: 1.65;
+  letter-spacing: 0.13em;
+  text-align: right;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+
+.gatePanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.8fr);
+  gap: 1px;
+  border: 1px solid var(--border);
+  background: var(--border);
+}
+
+.gateMain,
+.gateSide {
+  min-width: 0;
+  background: var(--surface);
+}
+
+.gateMain {
+  padding: 1.3rem;
+}
+
+.gateSide {
+  padding: 1.3rem;
+  background: var(--surface-raised);
+}
+
+.gateTitle {
+  margin-top: 0.4rem;
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 6vw, 4rem);
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.gateText {
+  max-width: 38rem;
+  margin-top: 0.8rem;
+  color: var(--foreground-muted);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+.steps {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1.4rem;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 3.7rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  background: rgba(13, 16, 19, 0.72);
+}
+
+.stepDone {
+  border-color: rgba(143, 207, 79, 0.28);
+}
+
+.stepCurrent {
+  border-color: rgba(245, 165, 36, 0.48);
+  background: rgba(245, 165, 36, 0.035);
+}
+
+.stepLocked {
+  opacity: 0.58;
+}
+
+.stepIndex {
+  display: grid;
+  place-items: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border: 1px solid var(--border-strong);
+  color: var(--foreground-muted);
+}
+
+.stepCurrent .stepIndex {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.stepDone .stepIndex {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.stepName {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stepDescription {
+  margin-top: 0.22rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--foreground-subtle);
+}
+
+.stepState {
+  font-size: 0.44rem;
+  color: var(--foreground-subtle);
+}
+
+.stepDone .stepState {
+  color: var(--success);
+}
+
+.stepCurrent .stepState {
+  color: var(--accent);
+}
+
+.nextMove {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  margin-top: 1.25rem;
+}
+
+.nextMoveTitle {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.nextMoveText {
+  margin-top: 0.45rem;
+  font-size: 0.76rem;
+  line-height: 1.65;
+  color: var(--foreground-muted);
+}
+
+.nextMoveAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.55rem;
+  margin-top: 0.9rem;
+  padding: 0 0.95rem;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.nextMoveAction:hover {
+  border-color: var(--accent);
+  background: rgba(245, 165, 36, 0.04);
+  color: var(--accent);
+}
+
+.specGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--border);
+  background: var(--border);
+}
+
+.spec {
+  min-height: 7rem;
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.metaValue {
+  display: block;
+  margin-top: 0.7rem;
+  font-size: clamp(1.25rem, 3vw, 1.8rem);
+  color: var(--foreground);
+}
+
+.sideTitle {
+  margin-top: 0.35rem;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+.sideText {
+  margin-top: 0.7rem;
+  font-size: 0.78rem;
+  line-height: 1.65;
+  color: var(--foreground-muted);
+}
+
+.sideRule {
+  height: 1px;
+  margin: 1.15rem 0;
+  background: var(--border);
+}
+
+.sideList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sideItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+
+.sideItem strong {
+  font-weight: 500;
+  text-align: right;
+  color: var(--foreground);
+}
+
+.activePanel {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+
+.activeTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.activeTitle {
+  margin-top: 0.35rem;
+  font-family: var(--font-display);
+  font-size: clamp(2.3rem, 6vw, 4rem);
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.activeBadge {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(143, 207, 79, 0.4);
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-size: 0.46rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.activeStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+}
+
+.activeStat {
+  padding: 1rem;
+  background: var(--surface-raised);
+}
+
+.footer {
+  margin-top: 3rem;
+  padding: 1rem 0 2rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.46rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+
+@media (max-width: 820px) {
+  .gatePanel,
+  .specGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .gateMain,
+  .gateSide {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .hero {
+    padding: 3rem 0 2.5rem;
+  }
+
+  .sectionHeader {
+    display: block;
+  }
+
+  .sectionNote {
+    margin-top: 0.7rem;
+    text-align: left;
+  }
+
+  .specGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .step {
+    grid-template-columns: 2.2rem 1fr;
+  }
+
+  .stepState {
+    grid-column: 2;
+    margin-top: -0.25rem;
+  }
+
+  .footer {
+    flex-direction: column;
+  }
+}
