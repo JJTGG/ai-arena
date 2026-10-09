@@ -1,5 +1,8 @@
 import { HostedError } from "./errors";
-import { getDailyRoundsRemaining, getRoundsRemaining, isEntitlementActive } from "./entitlement";
+import {
+  getRoundsRemaining,
+  isEntitlementActive,
+} from "./entitlement";
 import type {
   HostedAccessSnapshot,
   HostedAccount,
@@ -49,20 +52,8 @@ export function buildHostedAccessSnapshot(
     );
 
   if (
-    input.entitlement &&
-    activeEntitlement &&
-    !input.dailyUsage
-  ) {
-    throw new HostedError("INTERNAL_ERROR", {
-      status: 500,
-      message: "Active entitlement is missing daily usage state.",
-    });
-  }
-
-  if (
     !input.entitlement ||
-    !activeEntitlement ||
-    !input.dailyUsage
+    !activeEntitlement
   ) {
     return {
       eligible,
@@ -72,6 +63,26 @@ export function buildHostedAccessSnapshot(
       checkoutAvailable: eligible,
     };
   }
+
+  /*
+   * Daily usage is intentionally lazy-created by the
+   * reservation service. A missing row for today's usage
+   * date therefore means the account has used zero rounds
+   * today; it is not an internal error.
+   */
+  const dailyCompletedRounds =
+    input.dailyUsage?.completedRounds ?? 0;
+
+  const dailyReservedRounds =
+    input.dailyUsage?.reservedRounds ?? 0;
+
+  const dailyRoundsRemaining =
+    Math.max(
+      0,
+      input.entitlement.dailyLimit -
+        dailyCompletedRounds -
+        dailyReservedRounds,
+    );
 
   return {
     eligible,
@@ -83,24 +94,21 @@ export function buildHostedAccessSnapshot(
       status: input.entitlement.status,
       startsAt: input.entitlement.startsAt,
       expiresAt: input.entitlement.expiresAt,
-      totalRounds: input.entitlement.totalRounds,
+      totalRounds:
+        input.entitlement.totalRounds,
       completedRounds:
         input.entitlement.completedRounds,
       reservedRounds:
         input.entitlement.reservedRounds,
       roundsRemaining:
-        getRoundsRemaining(input.entitlement),
+        getRoundsRemaining(
+          input.entitlement,
+        ),
       dailyLimit:
         input.entitlement.dailyLimit,
-      dailyCompletedRounds:
-        input.dailyUsage.completedRounds,
-      dailyReservedRounds:
-        input.dailyUsage.reservedRounds,
-      dailyRoundsRemaining:
-        getDailyRoundsRemaining(
-          input.entitlement,
-          input.dailyUsage,
-        ),
+      dailyCompletedRounds,
+      dailyReservedRounds,
+      dailyRoundsRemaining,
     },
   };
 }
