@@ -1,3 +1,4 @@
+
 import type {
   HostedAccount,
   HostedDailyUsage,
@@ -18,6 +19,7 @@ export interface HostedRepository {
 
   getAccountById(
     accountId: string,
+    options?: HostedRepositoryQueryOptions,
   ): Promise<HostedAccount | null>;
 
   saveAccount(
@@ -64,6 +66,12 @@ export interface HostedRepository {
   getPaymentByProviderReference(
     provider: string,
     providerPaymentReference: string,
+    options?: HostedRepositoryQueryOptions,
+  ): Promise<HostedPayment | null>;
+
+  getLatestPendingPaymentForAccount(
+    accountId: string,
+    provider: string,
     options?: HostedRepositoryQueryOptions,
   ): Promise<HostedPayment | null>;
 
