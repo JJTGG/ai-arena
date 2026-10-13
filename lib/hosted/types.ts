@@ -1,3 +1,4 @@
+
 export type HostedProviderId =
   | "gemini"
   | "groq";
@@ -108,6 +109,7 @@ export type HostedPayment = {
   providerPaymentReference: string;
   providerTransactionReference: string | null;
   checkoutReference: string | null;
+  checkoutUrl?: string | null;
   amountMinor: number;
   currency: string;
   status: PaymentStatus;
