@@ -1,3 +1,4 @@
+
 import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -45,6 +46,39 @@ type PaystackVerifyResponse = {
     metadata?: Record<string, unknown> | null;
   };
 };
+
+export type PaystackTransactionStatus =
+  | "abandoned"
+  | "failed"
+  | "ongoing"
+  | "pending"
+  | "processing"
+  | "queued"
+  | "reversed"
+  | "success";
+
+export type PaystackTransactionInspection =
+  | {
+      kind: "not_found";
+      reference: string;
+    }
+  | {
+      kind: "found";
+      reference: string;
+      status: PaystackTransactionStatus;
+      payment: VerifiedPayment;
+    };
+
+const transactionStatuses: readonly string[] = [
+  "abandoned",
+  "failed",
+  "ongoing",
+  "pending",
+  "processing",
+  "queued",
+  "reversed",
+  "success",
+];
 
 function requireEnvironment(name: string): string {
   const value = process.env[name]?.trim();
@@ -181,9 +215,14 @@ export class PaystackHostedPaymentProvider
     };
   }
 
-  private async verifyTransactionByReference(
+  /**
+   * Inspect the provider's actual transaction state.
+   * Only an explicit "reference not found" response is
+   * treated as proof that Paystack has no such reference.
+   */
+  async inspectTransaction(
     reference: string,
-  ): Promise<VerifiedPayment> {
+  ): Promise<PaystackTransactionInspection> {
     const normalizedReference = normalizeReference(reference);
 
     if (!normalizedReference) {
@@ -210,6 +249,20 @@ export class PaystackHostedPaymentProvider
     const payload =
       await readJson<PaystackVerifyResponse>(response);
 
+    const providerMessage = payload.message?.trim() ?? "";
+
+    if (
+      (!response.ok || payload.status !== true) &&
+      /transaction reference not found|reference not found/i.test(
+        providerMessage,
+      )
+    ) {
+      return {
+        kind: "not_found",
+        reference: normalizedReference,
+      };
+    }
+
     assertSuccessfulResponse(response, payload);
 
     const transaction = payload.data;
@@ -223,16 +276,7 @@ export class PaystackHostedPaymentProvider
       });
     }
 
-    if (transaction.status !== "success") {
-      throw new HostedError("PAYMENT_NOT_CONFIRMED", {
-        status: 409,
-        message:
-          "Paystack transaction has not completed successfully.",
-      });
-    }
-
-    const returnedReference =
-      transaction.reference?.trim();
+    const returnedReference = transaction.reference?.trim();
 
     if (
       !returnedReference ||
@@ -242,6 +286,18 @@ export class PaystackHostedPaymentProvider
         status: 409,
         message:
           "Paystack returned a different transaction reference.",
+      });
+    }
+
+    if (
+      !transaction.status ||
+      !transactionStatuses.includes(transaction.status)
+    ) {
+      throw new HostedError("PROVIDER_REJECTED", {
+        status: 502,
+        message:
+          "Paystack returned an unknown transaction status.",
+        retryable: true,
       });
     }
 
@@ -259,8 +315,7 @@ export class PaystackHostedPaymentProvider
       });
     }
 
-    const currency =
-      transaction.currency?.trim().toUpperCase();
+    const currency = transaction.currency?.trim().toUpperCase();
 
     if (!currency) {
       throw new HostedError("PAYMENT_NOT_CONFIRMED", {
@@ -271,22 +326,55 @@ export class PaystackHostedPaymentProvider
     }
 
     return {
-      provider: this.id,
-      providerPaymentReference: normalizedReference,
-      checkoutReference:
-        getCheckoutReference(transaction.metadata),
-      amountMinor,
-      currency,
+      kind: "found",
+      reference: normalizedReference,
+      status: transaction.status as PaystackTransactionStatus,
+      payment: {
+        provider: this.id,
+        providerPaymentReference: normalizedReference,
+        checkoutReference:
+          getCheckoutReference(transaction.metadata),
+        amountMinor,
+        currency,
+      },
     };
+  }
+
+  private async verifyTransactionByReference(
+    reference: string,
+  ): Promise<VerifiedPayment> {
+    const inspection =
+      await this.inspectTransaction(reference);
+
+    if (inspection.kind === "not_found") {
+      throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+        status: 404,
+        message:
+          "No matching Paystack transaction was found.",
+      });
+    }
+
+    if (inspection.status !== "success") {
+      throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+        status: 409,
+        message:
+          `Paystack transaction has status "${inspection.status}", not success.`,
+        retryable:
+          inspection.status === "pending" ||
+          inspection.status === "ongoing" ||
+          inspection.status === "processing",
+      });
+    }
+
+    return inspection.payment;
   }
 
   async initializePayment(
     input: HostedPaymentInitializationInput,
   ): Promise<HostedPaymentInitializationResult> {
-    const paymentReference =
-      normalizeReference(
-        input.payment.providerPaymentReference,
-      );
+    const paymentReference = normalizeReference(
+      input.payment.providerPaymentReference,
+    );
 
     if (!paymentReference) {
       throw new HostedError("PAYMENT_NOT_CONFIRMED", {
@@ -300,21 +388,18 @@ export class PaystackHostedPaymentProvider
       {
         method: "POST",
         headers: {
-          Authorization:
-            `Bearer ${this.config.secretKey}`,
+          Authorization: `Bearer ${this.config.secretKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: input.customerEmail,
           amount: input.payment.amountMinor,
-          currency:
-            normalizeCurrency(input.payment.currency),
+          currency: normalizeCurrency(input.payment.currency),
           reference: paymentReference,
           callback_url: input.redirectUrl,
           metadata: {
             accountId: input.payment.accountId,
-            checkoutReference:
-              input.payment.checkoutReference,
+            checkoutReference: input.payment.checkoutReference,
             paymentId: input.payment.id,
           },
         }),
@@ -323,9 +408,7 @@ export class PaystackHostedPaymentProvider
     );
 
     const payload =
-      await readJson<PaystackInitializeResponse>(
-        response,
-      );
+      await readJson<PaystackInitializeResponse>(response);
 
     assertSuccessfulResponse(response, payload);
 
@@ -354,8 +437,7 @@ export class PaystackHostedPaymentProvider
 
     return {
       checkoutUrl: authorizationUrl,
-      providerTransactionReference:
-        returnedReference,
+      providerTransactionReference: returnedReference,
     };
   }
 
