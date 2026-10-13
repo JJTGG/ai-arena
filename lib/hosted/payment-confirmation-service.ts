@@ -1,6 +1,6 @@
+
 import { HostedError } from "./errors";
 import {
-  assertCanCreateEntitlement,
   createEntitlementFromConfirmedPayment,
   expireEntitlement,
   shouldExpireEntitlement,
@@ -43,21 +43,15 @@ export type ConfirmHostedPaymentResult = {
   alreadyProcessed: boolean;
 };
 
-function normalizeProvider(
-  value: string,
-): string {
+function normalizeProvider(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function normalizeReference(
-  value: string,
-): string {
+function normalizeReference(value: string): string {
   return value.trim();
 }
 
-function normalizeCurrency(
-  value: string,
-): string {
+function normalizeCurrency(value: string): string {
   return value.trim().toUpperCase();
 }
 
@@ -67,58 +61,41 @@ function assertWebhookMatchesVerifiedPayment(
 ): void {
   if (
     normalizeProvider(event.provider) !==
-    normalizeProvider(
-      verifiedPayment.provider,
-    )
+    normalizeProvider(verifiedPayment.provider)
   ) {
-    throw new HostedError(
-      "PAYMENT_NOT_CONFIRMED",
-      {
-        status: 400,
-        message:
-          "Webhook provider does not match the verified payment.",
-      },
-    );
+    throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+      status: 400,
+      message:
+        "Webhook provider does not match the verified payment.",
+    });
   }
 
   if (
-    normalizeReference(
-      event.providerPaymentReference,
-    ) !==
+    normalizeReference(event.providerPaymentReference) !==
     normalizeReference(
       verifiedPayment.providerPaymentReference,
     )
   ) {
-    throw new HostedError(
-      "PAYMENT_NOT_CONFIRMED",
-      {
-        status: 400,
-        message:
-          "Webhook payment reference does not match the verified payment.",
-      },
-    );
+    throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+      status: 400,
+      message:
+        "Webhook payment reference does not match the verified payment.",
+    });
   }
 
   if (
-    event.checkoutReference !==
-      null &&
-    verifiedPayment.checkoutReference !==
-      null &&
+    event.checkoutReference !== null &&
+    verifiedPayment.checkoutReference !== null &&
+    normalizeReference(event.checkoutReference) !==
     normalizeReference(
-      event.checkoutReference,
-    ) !==
-      normalizeReference(
-        verifiedPayment.checkoutReference,
-      )
+      verifiedPayment.checkoutReference,
+    )
   ) {
-    throw new HostedError(
-      "PAYMENT_NOT_CONFIRMED",
-      {
-        status: 400,
-        message:
-          "Webhook checkout reference does not match the verified payment.",
-      },
-    );
+    throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+      status: 400,
+      message:
+        "Webhook checkout reference does not match the verified payment.",
+    });
   }
 }
 
@@ -128,88 +105,63 @@ function assertStoredPaymentMatchesVerifiedPayment(
 ): void {
   if (
     normalizeProvider(payment.provider) !==
-    normalizeProvider(
-      verifiedPayment.provider,
-    )
+    normalizeProvider(verifiedPayment.provider)
   ) {
-    throw new HostedError(
-      "PAYMENT_NOT_CONFIRMED",
-      {
-        status: 409,
-        message:
-          "Stored payment provider does not match the verified webhook payment.",
-      },
-    );
+    throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+      status: 409,
+      message:
+        "Stored payment provider does not match the verified payment.",
+    });
   }
 
   if (
-    normalizeReference(
-      payment.providerPaymentReference,
-    ) !==
+    normalizeReference(payment.providerPaymentReference) !==
     normalizeReference(
       verifiedPayment.providerPaymentReference,
     )
   ) {
-    throw new HostedError(
-      "PAYMENT_NOT_CONFIRMED",
-      {
-        status: 409,
-        message:
-          "Stored payment reference does not match the verified webhook payment.",
-      },
-    );
+    throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+      status: 409,
+      message:
+        "Stored payment reference does not match the verified payment.",
+    });
   }
 
   if (
     payment.amountMinor !==
     verifiedPayment.amountMinor
   ) {
-    throw new HostedError(
-      "PAYMENT_NOT_CONFIRMED",
-      {
-        status: 409,
-        message:
-          "Stored payment amount does not match the verified webhook payment.",
-      },
-    );
+    throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+      status: 409,
+      message:
+        "Stored payment amount does not match the verified payment.",
+    });
   }
 
   if (
     normalizeCurrency(payment.currency) !==
-    normalizeCurrency(
-      verifiedPayment.currency,
-    )
+    normalizeCurrency(verifiedPayment.currency)
   ) {
-    throw new HostedError(
-      "PAYMENT_NOT_CONFIRMED",
-      {
-        status: 409,
-        message:
-          "Stored payment currency does not match the verified webhook payment.",
-      },
-    );
+    throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+      status: 409,
+      message:
+        "Stored payment currency does not match the verified payment.",
+    });
   }
 
   if (
-    payment.checkoutReference !==
-      null &&
-    verifiedPayment.checkoutReference !==
-      null &&
+    payment.checkoutReference !== null &&
+    verifiedPayment.checkoutReference !== null &&
+    normalizeReference(payment.checkoutReference) !==
     normalizeReference(
-      payment.checkoutReference,
-    ) !==
-      normalizeReference(
-        verifiedPayment.checkoutReference,
-      )
+      verifiedPayment.checkoutReference,
+    )
   ) {
-    throw new HostedError(
-      "PAYMENT_NOT_CONFIRMED",
-      {
-        status: 409,
-        message:
-          "Stored checkout reference does not match the verified webhook payment.",
-      },
-    );
+    throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+      status: 409,
+      message:
+        "Stored checkout reference does not match the verified payment.",
+    });
   }
 }
 
@@ -218,13 +170,10 @@ function createReceivedWebhookEvent(
 ): HostedWebhookEvent {
   return {
     id: crypto.randomUUID(),
-    provider:
-      event.provider.trim(),
-    providerEventId:
-      event.providerEventId.trim(),
+    provider: event.provider.trim(),
+    providerEventId: event.providerEventId.trim(),
     paymentId: null,
-    receivedAt:
-      event.receivedAt.toISOString(),
+    receivedAt: event.receivedAt.toISOString(),
     processedAt: null,
     status: "received",
   };
@@ -233,81 +182,53 @@ function createReceivedWebhookEvent(
 export async function confirmHostedPayment(
   input: ConfirmHostedPaymentInput,
 ): Promise<ConfirmHostedPaymentResult> {
-  const provider =
-    input.event.provider.trim();
-
+  const provider = input.event.provider.trim();
   const providerEventId =
     input.event.providerEventId.trim();
-
   const providerPaymentReference =
     input.event.providerPaymentReference.trim();
 
   if (!provider) {
-    throw new HostedError(
-      "PAYMENT_NOT_CONFIRMED",
-      {
-        status: 400,
-        message:
-          "Webhook provider is required.",
-      },
-    );
+    throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+      status: 400,
+      message: "Webhook provider is required.",
+    });
   }
 
   if (!providerEventId) {
-    throw new HostedError(
-      "PAYMENT_NOT_CONFIRMED",
-      {
-        status: 400,
-        message:
-          "Webhook event ID is required.",
-      },
-    );
+    throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+      status: 400,
+      message: "Webhook event ID is required.",
+    });
   }
 
   if (!providerPaymentReference) {
-    throw new HostedError(
-      "PAYMENT_NOT_CONFIRMED",
-      {
-        status: 400,
-        message:
-          "Webhook payment reference is required.",
-      },
-    );
+    throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+      status: 400,
+      message: "Webhook payment reference is required.",
+    });
   }
 
   if (!input.usageTimezone.trim()) {
-    throw new HostedError(
-      "INTERNAL_ERROR",
-      {
-        status: 500,
-        message:
-          "Hosted usage timezone is required.",
-      },
-    );
+    throw new HostedError("INTERNAL_ERROR", {
+      status: 500,
+      message: "Hosted usage timezone is required.",
+    });
   }
 
   const clock =
-    input.clock ??
-    new SystemHostedClock();
+    input.clock ?? new SystemHostedClock();
 
   return input.repository.executeTransaction(
     async (repository) => {
       const now = clock.now();
-      const timestamp =
-        now.toISOString();
+      const timestamp = now.toISOString();
 
       assertWebhookMatchesVerifiedPayment(
         input.event,
         input.payment,
       );
 
-      /*
-       * Webhook acquisition is the first durable step.
-       *
-       * createWebhookEvent() handles the unique
-       * provider/event constraint and locks an existing
-       * event when this repository is inside a transaction.
-       */
       const webhookEvent =
         await repository.createWebhookEvent(
           createReceivedWebhookEvent({
@@ -318,26 +239,15 @@ export async function confirmHostedPayment(
           }),
         );
 
-      /*
-       * A processed webhook is terminal from the
-       * application perspective. A duplicate delivery
-       * should therefore return the existing state rather
-       * than attempt to confirm the payment again.
-       */
-      if (
-        webhookEvent.status ===
-        "processed"
-      ) {
+      // A successfully processed webhook is idempotent.
+      if (webhookEvent.status === "processed") {
         if (!webhookEvent.paymentId) {
-          throw new HostedError(
-            "INTERNAL_ERROR",
-            {
-              status: 500,
-              message:
-                "Processed webhook event is missing its payment reference.",
-              retryable: true,
-            },
-          );
+          throw new HostedError("INTERNAL_ERROR", {
+            status: 500,
+            message:
+              "Processed webhook event is missing its payment reference.",
+            retryable: true,
+          });
         }
 
         const payment =
@@ -346,15 +256,12 @@ export async function confirmHostedPayment(
           );
 
         if (!payment) {
-          throw new HostedError(
-            "INTERNAL_ERROR",
-            {
-              status: 500,
-              message:
-                "Processed webhook event references a missing payment.",
-              retryable: true,
-            },
-          );
+          throw new HostedError("INTERNAL_ERROR", {
+            status: 500,
+            message:
+              "Processed webhook event references a missing payment.",
+            retryable: true,
+          });
         }
 
         assertStoredPaymentMatchesVerifiedPayment(
@@ -371,8 +278,43 @@ export async function confirmHostedPayment(
       }
 
       /*
-       * Lock the payment before changing any financial state.
+       * Read the payment without locking it first so we can
+       * discover its account. The account is locked before
+       * the payment and entitlement rows, matching checkout's
+       * account-first locking order.
        */
+      const candidatePayment =
+        await repository.getPaymentByProviderReference(
+          provider,
+          providerPaymentReference,
+        );
+
+      if (!candidatePayment) {
+        throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+          status: 404,
+          message:
+            "No matching Hosted payment could be found.",
+          retryable: false,
+        });
+      }
+
+      const account =
+        await repository.getAccountById(
+          candidatePayment.accountId,
+          {
+            forUpdate: true,
+          },
+        );
+
+      if (!account) {
+        throw new HostedError("INTERNAL_ERROR", {
+          status: 500,
+          message:
+            "The account linked to this payment could not be found.",
+          retryable: true,
+        });
+      }
+
       const payment =
         await repository.getPaymentByProviderReference(
           provider,
@@ -382,49 +324,29 @@ export async function confirmHostedPayment(
           },
         );
 
-      if (!payment) {
-        throw new HostedError(
-          "PAYMENT_NOT_CONFIRMED",
-          {
-            status: 404,
-            message:
-              "No matching Hosted payment could be found.",
-            retryable: false,
-          },
-        );
+      if (
+        !payment ||
+        payment.accountId !== account.id ||
+        payment.id !== candidatePayment.id
+      ) {
+        throw new HostedError("PAYMENT_NOT_CONFIRMED", {
+          status: 409,
+          message:
+            "The stored payment changed while confirmation was being prepared.",
+          retryable: true,
+        });
       }
 
-      assertPaymentPending(
-        payment,
-      );
+      assertPaymentPending(payment);
 
       assertStoredPaymentMatchesVerifiedPayment(
         payment,
         input.payment,
       );
 
-      const confirmedPayment: HostedPayment = {
-        ...payment,
-        status: "confirmed",
-        confirmedAt:
-          timestamp,
-      };
-
-      const savedPayment =
-        await repository.updatePayment(
-          confirmedPayment,
-        );
-
-      /*
-       * Lock the account's active entitlement.
-       *
-       * Existing active entitlements are checked after
-       * payment confirmation but before creating the new
-       * entitlement.
-       */
       let activeEntitlement =
         await repository.getActiveEntitlement(
-          savedPayment.accountId,
+          account.id,
           {
             forUpdate: true,
           },
@@ -451,22 +373,60 @@ export async function confirmHostedPayment(
         }
       }
 
-      assertCanCreateEntitlement(
-        activeEntitlement,
-      );
+      const confirmedPayment: HostedPayment = {
+        ...payment,
+        status: "confirmed",
+        confirmedAt: timestamp,
+      };
+
+      const savedPayment =
+        await repository.updatePayment(
+          confirmedPayment,
+        );
+
+      /*
+       * Paystack has verified the charge, but the account
+       * already has valid access. Record the real financial
+       * state and stop webhook retries. Do not create a
+       * second entitlement. This requires manual payment
+       * reconciliation/refund review.
+       */
+      if (activeEntitlement) {
+        const processedWebhookEvent =
+          await repository.updateWebhookEvent({
+            ...webhookEvent,
+            paymentId: savedPayment.id,
+            processedAt: timestamp,
+            status: "processed",
+          });
+
+        console.warn(
+          "[AI ARENA] Confirmed Hosted payment requires manual reconciliation: an active entitlement already exists.",
+          {
+            accountId: account.id,
+            paymentId: savedPayment.id,
+            paymentReference:
+              savedPayment.providerPaymentReference,
+            activeEntitlementId:
+              activeEntitlement.id,
+          },
+        );
+
+        return {
+          webhookEvent: processedWebhookEvent,
+          payment: savedPayment,
+          entitlement: null,
+          alreadyProcessed: false,
+        };
+      }
 
       const entitlement =
         createEntitlementFromConfirmedPayment({
-          accountId:
-            savedPayment.accountId,
-          payment:
-            savedPayment,
-          config:
-            hostedConfig,
-          startsAt:
-            now,
-          usageTimezone:
-            input.usageTimezone,
+          accountId: account.id,
+          payment: savedPayment,
+          config: hostedConfig,
+          startsAt: now,
+          usageTimezone: input.usageTimezone,
         });
 
       const savedEntitlement =
@@ -477,21 +437,15 @@ export async function confirmHostedPayment(
       const processedWebhookEvent =
         await repository.updateWebhookEvent({
           ...webhookEvent,
-          paymentId:
-            savedPayment.id,
-          processedAt:
-            timestamp,
-          status:
-            "processed",
+          paymentId: savedPayment.id,
+          processedAt: timestamp,
+          status: "processed",
         });
 
       return {
-        webhookEvent:
-          processedWebhookEvent,
-        payment:
-          savedPayment,
-        entitlement:
-          savedEntitlement,
+        webhookEvent: processedWebhookEvent,
+        payment: savedPayment,
+        entitlement: savedEntitlement,
         alreadyProcessed: false,
       };
     },
