@@ -6,7 +6,7 @@ import { getHostedAuthContext } from "@/lib/hosted/better-auth-session";
 import {
   assertHostedEligibility,
 } from "@/lib/hosted/eligibility";
-import { hostedErrorResponse } from "@/lib/hosted/errors";
+import { HostedError, hostedErrorResponse } from "@/lib/hosted/errors";
 import {
   expireEntitlement,
   shouldExpireEntitlement,
@@ -26,9 +26,57 @@ import {
 } from "@/lib/hosted/clock";
 import type { HostedPayment } from "@/lib/hosted/types";
 
-export async function POST(
-  request: Request,
+type CheckoutPreparation =
+  | {
+      kind: "active";
+    }
+  | {
+      kind: "existing";
+      payment: HostedPayment;
+    }
+  | {
+      kind: "reserved";
+      payment: HostedPayment;
+    };
+
+function paymentResponse(
+  payment: HostedPayment,
+  checkoutUrl: string,
+  reusedPendingPayment: boolean,
 ) {
+  return NextResponse.json({
+    ok: true,
+    alreadyActive: false,
+    checkoutUrl,
+    paymentReference:
+      payment.providerPaymentReference,
+    currency: payment.currency,
+    amountMinor: payment.amountMinor,
+    reusedPendingPayment,
+  });
+}
+
+function unresolvedPaymentResponse(
+  payment: HostedPayment,
+) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: {
+        code: "CHECKOUT_RECOVERY_REQUIRED",
+        message:
+          "A previous Paystack payment attempt is still pending, but its checkout URL was not saved. No new payment was created. This attempt must be reconciled before another checkout can begin. Payment reference: " +
+          payment.providerPaymentReference,
+        retryable: false,
+      },
+    },
+    {
+      status: 409,
+    },
+  );
+}
+
+export async function POST(request: Request) {
   try {
     const authContext =
       await getHostedAuthContext();
@@ -39,9 +87,7 @@ export async function POST(
     const clock =
       new SystemHostedClock();
 
-    const {
-      account,
-    } =
+    const { account } =
       await resolveHostedSession({
         repository,
         authContext,
@@ -53,48 +99,128 @@ export async function POST(
       authContext!,
     );
 
+    const paymentProvider =
+      new PaystackHostedPaymentProvider();
+
+    const countryCode =
+      getRequestCountry(request.headers);
+
     const entitlementCheckAt =
       clock.now();
 
-    const activeEntitlement =
+    const preparation =
       await repository.executeTransaction(
-        async (transactionRepository) => {
-          const entitlement =
-            await transactionRepository.getActiveEntitlement(
+        async (transactionRepository): Promise<CheckoutPreparation> => {
+          // Serialize checkout preparation for this account.
+          const lockedAccount =
+            await transactionRepository.getAccountById(
               account.id,
               {
                 forUpdate: true,
               },
             );
 
-          if (!entitlement) {
-            return null;
+          if (!lockedAccount) {
+            throw new HostedError(
+              "ACCOUNT_REQUIRED",
+              {
+                status: 404,
+                message:
+                  "The Hosted Arena account could not be found.",
+              },
+            );
           }
 
-          if (
-            !shouldExpireEntitlement(
-              entitlement,
-              entitlementCheckAt,
-            )
-          ) {
-            return entitlement;
-          }
-
-          const expiredEntitlement =
-            expireEntitlement(
-              entitlement,
-              entitlementCheckAt,
+          const entitlement =
+            await transactionRepository.getActiveEntitlement(
+              lockedAccount.id,
+              {
+                forUpdate: true,
+              },
             );
 
-          await transactionRepository.updateEntitlement(
-            expiredEntitlement,
-          );
+          if (entitlement) {
+            if (
+              !shouldExpireEntitlement(
+                entitlement,
+                entitlementCheckAt,
+              )
+            ) {
+              return {
+                kind: "active",
+              };
+            }
 
-          return null;
+            await transactionRepository.updateEntitlement(
+              expireEntitlement(
+                entitlement,
+                entitlementCheckAt,
+              ),
+            );
+          }
+
+          // Reuse an unresolved Paystack payment instead
+          // of creating another transaction reference.
+          const pendingPayment =
+            await transactionRepository.getLatestPendingPaymentForAccount(
+              lockedAccount.id,
+              "paystack",
+              {
+                forUpdate: true,
+              },
+            );
+
+          if (pendingPayment) {
+            return {
+              kind: "existing",
+              payment: pendingPayment,
+            };
+          }
+
+          const checkout =
+            createHostedCheckout(
+              lockedAccount.id,
+              {
+                pricingContext: {
+                  countryCode,
+                },
+              },
+              clock.now(),
+            );
+
+          const payment: HostedPayment = {
+            id: crypto.randomUUID(),
+            accountId: lockedAccount.id,
+            provider: "paystack",
+            providerPaymentReference:
+              `AA-HOSTED-${checkout.id}`,
+            providerTransactionReference: null,
+            checkoutReference: checkout.id,
+            checkoutUrl: null,
+            amountMinor: checkout.amountMinor,
+            currency: checkout.currency,
+            status: "pending",
+            createdAt: checkout.createdAt,
+            confirmedAt: null,
+            reversedAt: null,
+          };
+
+          // This reservation is committed before calling
+          // Paystack, so simultaneous requests cannot each
+          // create an independent payment for this account.
+          const reservedPayment =
+            await transactionRepository.createPayment(
+              payment,
+            );
+
+          return {
+            kind: "reserved",
+            payment: reservedPayment,
+          };
         },
       );
 
-    if (activeEntitlement) {
+    if (preparation.kind === "active") {
       return NextResponse.json({
         ok: true,
         alreadyActive: true,
@@ -102,56 +228,33 @@ export async function POST(
       });
     }
 
-    const countryCode =
-      getRequestCountry(
-        request.headers,
+    if (preparation.kind === "existing") {
+      const pendingPayment =
+        preparation.payment;
+
+      if (pendingPayment.checkoutUrl?.trim()) {
+        return paymentResponse(
+          pendingPayment,
+          pendingPayment.checkoutUrl,
+          true,
+        );
+      }
+
+      return unresolvedPaymentResponse(
+        pendingPayment,
       );
+    }
 
-    const checkout =
-      createHostedCheckout(
-        account.id,
-        {
-          pricingContext: {
-            countryCode,
-          },
-        },
-        clock.now(),
-      );
+    const payment =
+      preparation.payment;
 
-    const paymentReference =
-      `AA-HOSTED-${checkout.id}`;
-
-    const payment: HostedPayment = {
-      id: crypto.randomUUID(),
-      accountId: account.id,
-      provider: "paystack",
-      providerPaymentReference:
-        paymentReference,
-      providerTransactionReference:
-        null,
-      checkoutReference:
-        checkout.id,
-      amountMinor:
-        checkout.amountMinor,
-      currency:
-        checkout.currency,
-      status: "pending",
-      createdAt:
-        checkout.createdAt,
-      confirmedAt:
-        null,
-      reversedAt:
-        null,
-    };
-
-    const paymentProvider =
-      new PaystackHostedPaymentProvider();
-
+    // The reservation already exists. If the provider
+    // result is ambiguous, keep the reservation pending
+    // so another request cannot create a second payment.
     const result =
       await paymentProvider.initializePayment({
         payment,
-        customerEmail:
-          account.email,
+        customerEmail: account.email,
         redirectUrl:
           new URL(
             "/hosted",
@@ -161,33 +264,38 @@ export async function POST(
           "AI Arena Hosted access — 60 rounds, 30 days",
       });
 
-    // Persist the pending payment only after Paystack
-    // returns valid checkout details.
-    await repository.createPayment({
-      ...payment,
-      providerTransactionReference:
-        result.providerTransactionReference,
-    });
+    if (!result.checkoutUrl.trim()) {
+      throw new HostedError(
+        "PROVIDER_REJECTED",
+        {
+          status: 502,
+          message:
+            "Paystack did not return a usable checkout URL. The payment attempt has been reserved for reconciliation.",
+          retryable: true,
+        },
+      );
+    }
 
-    return NextResponse.json({
-      ok: true,
-      alreadyActive: false,
-      checkoutUrl:
-        result.checkoutUrl,
-      paymentReference,
-      currency:
-        checkout.currency,
-      amountMinor:
-        checkout.amountMinor,
-    });
+    const savedPayment =
+      await repository.updatePayment({
+        ...payment,
+        providerTransactionReference:
+          result.providerTransactionReference,
+        checkoutUrl:
+          result.checkoutUrl,
+      });
+
+    return paymentResponse(
+      savedPayment,
+      savedPayment.checkoutUrl!,
+      false,
+    );
   } catch (error) {
     console.error(
       "[HOSTED ARENA] Checkout initialization failed:",
       error,
     );
 
-    return hostedErrorResponse(
-      error,
-    );
+    return hostedErrorResponse(error);
   }
 }
