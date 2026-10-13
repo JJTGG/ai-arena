@@ -1,3 +1,4 @@
+
 import type {
   HostedErrorCode,
   HostedProviderResult,
@@ -47,11 +48,57 @@ export function mapProviderStatusToErrorCode(
   return "PROVIDER_REJECTED";
 }
 
+function isAbortError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.name === "AbortError"
+  );
+}
+
+function createBufferedResponse(
+  response: Response,
+  bodyText: string,
+): Response {
+  const headers = new Headers(response.headers);
+
+  // The response body has been reconstructed from text, so
+  // the original transport encoding and byte length no longer
+  // describe the locally buffered response.
+  headers.delete("content-encoding");
+  headers.delete("content-length");
+  headers.delete("transfer-encoding");
+
+  const statusForbidsBody =
+    response.status === 204 ||
+    response.status === 205 ||
+    response.status === 304;
+
+  return new Response(
+    statusForbidsBody || bodyText.length === 0
+      ? null
+      : bodyText,
+    {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    },
+  );
+}
+
 export async function fetchWithProviderTimeout(
   input: RequestInfo | URL,
   init: RequestInit,
   timeoutMs = DEFAULT_PROVIDER_TIMEOUT_MS,
 ): Promise<Response> {
+  if (
+    !Number.isFinite(timeoutMs) ||
+    timeoutMs <= 0
+  ) {
+    throw new Error(
+      "PROVIDER_TIMEOUT_CONFIGURATION_INVALID",
+    );
+  }
+
   const controller = new AbortController();
 
   const timeout = setTimeout(() => {
@@ -59,14 +106,27 @@ export async function fetchWithProviderTimeout(
   }, timeoutMs);
 
   try {
-    return await fetch(input, {
+    const response = await fetch(input, {
       ...init,
       signal: controller.signal,
     });
+
+    // Keep the deadline active while reading the body,
+    // not just while waiting for response headers.
+    const bodyText = await response.text();
+
+    if (controller.signal.aborted) {
+      throw new Error("PROVIDER_TIMEOUT");
+    }
+
+    return createBufferedResponse(
+      response,
+      bodyText,
+    );
   } catch (error) {
     if (
-      error instanceof DOMException &&
-      error.name === "AbortError"
+      controller.signal.aborted ||
+      isAbortError(error)
     ) {
       throw new Error("PROVIDER_TIMEOUT");
     }
@@ -87,7 +147,7 @@ export async function readJsonResponse(
   }
 
   try {
-    return JSON.parse(text);
+    return JSON.parse(text) as unknown;
   } catch {
     throw new Error("PROVIDER_INVALID_JSON");
   }
