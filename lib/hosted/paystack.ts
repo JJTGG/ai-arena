@@ -4,6 +4,9 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { HostedError } from "./errors";
+import {
+  fetchWithProviderTimeout,
+} from "./provider-utils";
 import type {
   HostedPaymentInitializationInput,
   HostedPaymentInitializationResult,
@@ -69,6 +72,8 @@ export type PaystackTransactionInspection =
       payment: VerifiedPayment;
     };
 
+const PAYSTACK_TIMEOUT_MS = 20_000;
+
 const transactionStatuses: readonly string[] = [
   "abandoned",
   "failed",
@@ -100,6 +105,37 @@ function getPaystackConfig(): PaystackConfig {
       process.env.PAYSTACK_BASE_URL?.trim() ||
       "https://api.paystack.co",
   };
+}
+
+async function fetchPaystack(
+  input: RequestInfo | URL,
+  init: RequestInit,
+): Promise<Response> {
+  try {
+    return await fetchWithProviderTimeout(
+      input,
+      init,
+      PAYSTACK_TIMEOUT_MS,
+    );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === "PROVIDER_TIMEOUT"
+    ) {
+      throw new HostedError("PROVIDER_TIMEOUT", {
+        status: 504,
+        message: "The Paystack request timed out.",
+        retryable: true,
+      });
+    }
+
+    throw new HostedError("PROVIDER_UNAVAILABLE", {
+      status: 502,
+      message:
+        "Unable to complete the request to Paystack.",
+      retryable: true,
+    });
+  }
 }
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -215,11 +251,6 @@ export class PaystackHostedPaymentProvider
     };
   }
 
-  /**
-   * Inspect the provider's actual transaction state.
-   * Only an explicit "reference not found" response is
-   * treated as proof that Paystack has no such reference.
-   */
   async inspectTransaction(
     reference: string,
   ): Promise<PaystackTransactionInspection> {
@@ -232,7 +263,7 @@ export class PaystackHostedPaymentProvider
       });
     }
 
-    const response = await fetch(
+    const response = await fetchPaystack(
       `${this.config.baseUrl}/transaction/verify/${encodeURIComponent(
         normalizedReference,
       )}`,
@@ -383,7 +414,7 @@ export class PaystackHostedPaymentProvider
       });
     }
 
-    const response = await fetch(
+    const response = await fetchPaystack(
       `${this.config.baseUrl}/transaction/initialize`,
       {
         method: "POST",
