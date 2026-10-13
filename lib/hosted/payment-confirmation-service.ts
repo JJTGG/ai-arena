@@ -127,10 +127,7 @@ function assertStoredPaymentMatchesVerifiedPayment(
     });
   }
 
-  if (
-    payment.amountMinor !==
-    verifiedPayment.amountMinor
-  ) {
+  if (payment.amountMinor !== verifiedPayment.amountMinor) {
     throw new HostedError("PAYMENT_NOT_CONFIRMED", {
       status: 409,
       message:
@@ -183,8 +180,7 @@ export async function confirmHostedPayment(
   input: ConfirmHostedPaymentInput,
 ): Promise<ConfirmHostedPaymentResult> {
   const provider = input.event.provider.trim();
-  const providerEventId =
-    input.event.providerEventId.trim();
+  const providerEventId = input.event.providerEventId.trim();
   const providerPaymentReference =
     input.event.providerPaymentReference.trim();
 
@@ -216,8 +212,7 @@ export async function confirmHostedPayment(
     });
   }
 
-  const clock =
-    input.clock ?? new SystemHostedClock();
+  const clock = input.clock ?? new SystemHostedClock();
 
   return input.repository.executeTransaction(
     async (repository) => {
@@ -239,7 +234,6 @@ export async function confirmHostedPayment(
           }),
         );
 
-      // A successfully processed webhook is idempotent.
       if (webhookEvent.status === "processed") {
         if (!webhookEvent.paymentId) {
           throw new HostedError("INTERNAL_ERROR", {
@@ -277,12 +271,8 @@ export async function confirmHostedPayment(
         };
       }
 
-      /*
-       * Read the payment without locking it first so we can
-       * discover its account. The account is locked before
-       * the payment and entitlement rows, matching checkout's
-       * account-first locking order.
-       */
+      // Discover the account, then lock rows in account-first
+      // order so checkout and confirmation serialize consistently.
       const candidatePayment =
         await repository.getPaymentByProviderReference(
           provider,
@@ -337,12 +327,34 @@ export async function confirmHostedPayment(
         });
       }
 
-      assertPaymentPending(payment);
-
       assertStoredPaymentMatchesVerifiedPayment(
         payment,
         input.payment,
       );
+
+      /*
+       * A recovery operation or another webhook may already
+       * have confirmed this charge. Complete this event without
+       * granting access a second time.
+       */
+      if (payment.status === "confirmed") {
+        const processedWebhookEvent =
+          await repository.updateWebhookEvent({
+            ...webhookEvent,
+            paymentId: payment.id,
+            processedAt: timestamp,
+            status: "processed",
+          });
+
+        return {
+          webhookEvent: processedWebhookEvent,
+          payment,
+          entitlement: null,
+          alreadyProcessed: false,
+        };
+      }
+
+      assertPaymentPending(payment);
 
       let activeEntitlement =
         await repository.getActiveEntitlement(
@@ -353,17 +365,9 @@ export async function confirmHostedPayment(
         );
 
       if (activeEntitlement) {
-        if (
-          shouldExpireEntitlement(
-            activeEntitlement,
-            now,
-          )
-        ) {
+        if (shouldExpireEntitlement(activeEntitlement, now)) {
           activeEntitlement =
-            expireEntitlement(
-              activeEntitlement,
-              now,
-            );
+            expireEntitlement(activeEntitlement, now);
 
           await repository.updateEntitlement(
             activeEntitlement,
@@ -385,11 +389,9 @@ export async function confirmHostedPayment(
         );
 
       /*
-       * Paystack has verified the charge, but the account
-       * already has valid access. Record the real financial
-       * state and stop webhook retries. Do not create a
-       * second entitlement. This requires manual payment
-       * reconciliation/refund review.
+       * A real charge must be recorded even when access already
+       * exists. Do not create a second entitlement automatically.
+       * The warning is an explicit manual reconciliation signal.
        */
       if (activeEntitlement) {
         const processedWebhookEvent =
@@ -407,8 +409,7 @@ export async function confirmHostedPayment(
             paymentId: savedPayment.id,
             paymentReference:
               savedPayment.providerPaymentReference,
-            activeEntitlementId:
-              activeEntitlement.id,
+            activeEntitlementId: activeEntitlement.id,
           },
         );
 
