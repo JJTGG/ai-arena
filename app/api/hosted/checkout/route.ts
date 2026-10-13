@@ -144,10 +144,6 @@ export async function POST(
         null,
     };
 
-    await repository.createPayment(
-      payment,
-    );
-
     const paymentProvider =
       new PaystackHostedPaymentProvider();
 
@@ -165,7 +161,9 @@ export async function POST(
           "AI Arena Hosted access — 60 rounds, 30 days",
       });
 
-    await repository.updatePayment({
+    // Persist the pending payment only after Paystack
+    // returns valid checkout details.
+    await repository.createPayment({
       ...payment,
       providerTransactionReference:
         result.providerTransactionReference,
