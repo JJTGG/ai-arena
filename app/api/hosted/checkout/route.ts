@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 
 import { createNeonHostedRepository } from "@/db/neon-hosted-repository";
@@ -6,6 +7,10 @@ import {
   assertHostedEligibility,
 } from "@/lib/hosted/eligibility";
 import { hostedErrorResponse } from "@/lib/hosted/errors";
+import {
+  expireEntitlement,
+  shouldExpireEntitlement,
+} from "@/lib/hosted/entitlement-lifecycle";
 import {
   PaystackHostedPaymentProvider,
 } from "@/lib/hosted/paystack";
@@ -48,9 +53,45 @@ export async function POST(
       authContext!,
     );
 
+    const entitlementCheckAt =
+      clock.now();
+
     const activeEntitlement =
-      await repository.getActiveEntitlement(
-        account.id,
+      await repository.executeTransaction(
+        async (transactionRepository) => {
+          const entitlement =
+            await transactionRepository.getActiveEntitlement(
+              account.id,
+              {
+                forUpdate: true,
+              },
+            );
+
+          if (!entitlement) {
+            return null;
+          }
+
+          if (
+            !shouldExpireEntitlement(
+              entitlement,
+              entitlementCheckAt,
+            )
+          ) {
+            return entitlement;
+          }
+
+          const expiredEntitlement =
+            expireEntitlement(
+              entitlement,
+              entitlementCheckAt,
+            );
+
+          await transactionRepository.updateEntitlement(
+            expiredEntitlement,
+          );
+
+          return null;
+        },
       );
 
     if (activeEntitlement) {
