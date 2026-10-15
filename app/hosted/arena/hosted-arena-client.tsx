@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { KeyboardEvent } from "react";
 
 import styles from "./arena.module.css";
@@ -18,6 +18,7 @@ type InitialUsage = {
 
 type RoundDetails = {
   id: string;
+  idempotencyKey?: string;
   prompt: string;
   status: string;
   reservedAt: string;
@@ -25,6 +26,7 @@ type RoundDetails = {
   completedAt: string | null;
   releasedAt: string | null;
   failureCode: string | null;
+  createdAt?: string;
 };
 
 type EntrantResult = {
@@ -44,6 +46,11 @@ type RoundUsage = {
   completedRounds: number;
 };
 
+type RoundHistoryEntry = {
+  round: RoundDetails;
+  entrants: EntrantResult[];
+};
+
 type RoundApiResponse = {
   ok: boolean;
   error?: {
@@ -56,9 +63,13 @@ type RoundApiResponse = {
   usage?: RoundUsage | null;
 };
 
-type LatestRound = {
-  round: RoundDetails;
-  entrants: EntrantResult[];
+type HistoryApiResponse = {
+  ok: boolean;
+  error?: {
+    message?: string;
+  };
+  rounds?: RoundHistoryEntry[];
+  usage?: RoundUsage;
 };
 
 function createRequestKey() {
@@ -107,6 +118,26 @@ function entrantStatusClass(status: string) {
       return styles.statusSuccess;
 
     case "failed":
+      return styles.statusDanger;
+
+    case "retryable":
+      return styles.statusWarning;
+
+    case "running":
+      return styles.statusRunning;
+
+    default:
+      return styles.statusNeutral;
+  }
+}
+
+function roundStatusClass(status: string) {
+  switch (status) {
+    case "completed":
+      return styles.statusSuccess;
+
+    case "failed":
+    case "released":
       return styles.statusDanger;
 
     case "retryable":
@@ -173,6 +204,18 @@ function getEntrantFailureMessage(code: string | null) {
   }
 }
 
+function mergeRoundHistory(
+  current: RoundHistoryEntry[],
+  entry: RoundHistoryEntry,
+) {
+  return [
+    entry,
+    ...current.filter(
+      (item) => item.round.id !== entry.round.id,
+    ),
+  ].slice(0, 60);
+}
+
 export default function HostedArenaClient({
   initialUsage,
 }: {
@@ -181,7 +224,12 @@ export default function HostedArenaClient({
   const [usage, setUsage] = useState(initialUsage);
   const [prompt, setPrompt] = useState("");
   const [latestRound, setLatestRound] =
-    useState<LatestRound | null>(null);
+    useState<RoundHistoryEntry | null>(null);
+  const [roundHistory, setRoundHistory] =
+    useState<RoundHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] =
+    useState(true);
+  const [historyError, setHistoryError] = useState("");
   const [error, setError] = useState("");
   const [requestKey, setRequestKey] =
     useState<string | null>(null);
@@ -197,6 +245,82 @@ export default function HostedArenaClient({
     noRoundsRemaining || noDailyAllowance;
 
   const trimmedPrompt = prompt.trim();
+  const hasPendingRequest = requestKey !== null;
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadHistory() {
+      setHistoryLoading(true);
+      setHistoryError("");
+
+      try {
+        const response = await fetch(
+          "/api/hosted/rounds/history",
+          {
+            method: "GET",
+            cache: "no-store",
+          },
+        );
+
+        const payload =
+          (await response.json()) as HistoryApiResponse;
+
+        if (!response.ok || payload.ok !== true) {
+          throw new Error(
+            payload.error?.message ??
+              "Unable to load Hosted Arena history.",
+          );
+        }
+
+        if (!active) {
+          return;
+        }
+
+        const entries = Array.isArray(payload.rounds)
+          ? payload.rounds
+          : [];
+
+        setRoundHistory(entries);
+
+        if (payload.usage) {
+          setUsage((current) => ({
+            ...current,
+            totalRoundsRemaining:
+              payload.usage!.totalRoundsRemaining,
+            dailyRoundsRemaining:
+              payload.usage!.dailyRoundsRemaining,
+            completedRounds:
+              payload.usage!.completedRounds,
+            totalRounds:
+              payload.usage!.totalRounds,
+            dailyLimit:
+              payload.usage!.dailyLimit,
+          }));
+        }
+      } catch (loadError) {
+        if (!active) {
+          return;
+        }
+
+        setHistoryError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Unable to load Hosted Arena history.",
+        );
+      } finally {
+        if (active) {
+          setHistoryLoading(false);
+        }
+      }
+    }
+
+    void loadHistory();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleRunRound() {
     if (
@@ -257,8 +381,6 @@ export default function HostedArenaClient({
             `Hosted Arena could not start the round (HTTP ${response.status}).`,
         );
 
-        // Keep the same identifier only when the server says
-        // the operation may be retried.
         if (
           response.status < 500 &&
           !payload.error?.retryable
@@ -269,30 +391,38 @@ export default function HostedArenaClient({
         return;
       }
 
-      const round = payload.round;
+      const round: RoundDetails = {
+        ...payload.round,
+        idempotencyKey,
+      };
 
-      setLatestRound({
+      const entry: RoundHistoryEntry = {
         round,
         entrants: Array.isArray(payload.entrants)
           ? payload.entrants
           : [],
-      });
+      };
 
-      const responseUsage = payload.usage;
+      setLatestRound(entry);
+      setRoundHistory((current) =>
+        mergeRoundHistory(current, entry),
+      );
 
-      if (responseUsage) {
+      setHistoryError("");
+
+      if (payload.usage) {
         setUsage((current) => ({
           ...current,
           totalRoundsRemaining:
-            responseUsage.totalRoundsRemaining,
+            payload.usage!.totalRoundsRemaining,
           dailyRoundsRemaining:
-            responseUsage.dailyRoundsRemaining,
+            payload.usage!.dailyRoundsRemaining,
           completedRounds:
-            responseUsage.completedRounds,
+            payload.usage!.completedRounds,
           totalRounds:
-            responseUsage.totalRounds,
+            payload.usage!.totalRounds,
           dailyLimit:
-            responseUsage.dailyLimit,
+            payload.usage!.dailyLimit,
         }));
       }
 
@@ -301,21 +431,14 @@ export default function HostedArenaClient({
         round.status === "running" ||
         round.status === "reserved"
       ) {
-        // Continue the existing reservation on the next request.
         setRequestKey(idempotencyKey);
 
-        if (round.status === "retryable") {
-          setError(
-            "This round has a retryable result. Retry the same round to continue it without creating a new reservation.",
-          );
-        } else {
-          setError(
-            "The server has not reported a terminal result yet. Retry this same request to check the existing round.",
-          );
-        }
+        setError(
+          round.status === "retryable"
+            ? "This round can be retried. Use the same request to continue it without creating a new reservation."
+            : "The server has not reported a terminal result yet. Retry this same request to check the existing round.",
+        );
       } else {
-        // Completed and terminally released rounds no longer
-        // need the same request identifier.
         setRequestKey(null);
       }
     } finally {
@@ -341,10 +464,46 @@ export default function HostedArenaClient({
     }
   }
 
-  const hasPendingRequest = requestKey !== null;
+  function selectHistoryEntry(
+    entry: RoundHistoryEntry,
+  ) {
+    if (submitting || hasPendingRequest) {
+      return;
+    }
 
-  const retryLocked =
-    hasPendingRequest && !submitting;
+    setLatestRound(entry);
+    setPrompt(entry.round.prompt);
+    setError("");
+    setHistoryError("");
+
+    if (
+      entry.round.status === "retryable" &&
+      entry.round.idempotencyKey
+    ) {
+      setRequestKey(entry.round.idempotencyKey);
+      setError(
+        "This stored round can be retried using its original request identifier.",
+      );
+    } else {
+      setRequestKey(null);
+    }
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function clearDisplayedResult() {
+    if (submitting || hasPendingRequest) {
+      return;
+    }
+
+    setLatestRound(null);
+    setError("");
+    setPrompt("");
+    setRequestKey(null);
+  }
 
   const showRoundFailure =
     latestRound !== null &&
@@ -400,7 +559,10 @@ export default function HostedArenaClient({
           </div>
         </section>
 
-        <section className={styles.usage} aria-label="Hosted allowance">
+        <section
+          className={styles.usage}
+          aria-label="Hosted allowance"
+        >
           <article className={styles.usageCard}>
             <span className={styles.usageLabel}>
               ROUNDS REMAINING
@@ -518,11 +680,11 @@ export default function HostedArenaClient({
             </span>
           </div>
 
-          {retryLocked && (
+          {hasPendingRequest && (
             <p className={styles.allowanceMessage} role="status">
-              The prompt is locked to this request until the
-              server returns a terminal result. Retry the same
-              round rather than starting another reservation.
+              This prompt is tied to an existing request.
+              Retry it to continue the same round; the prompt
+              is locked to prevent accidental duplicate rounds.
             </p>
           )}
 
@@ -541,9 +703,8 @@ export default function HostedArenaClient({
 
               {hasPendingRequest && (
                 <span>
-                  The same request identifier is preserved.
-                  Retrying will not create a second reservation
-                  for this prompt.
+                  The original request identifier is preserved
+                  for safe retrying.
                 </span>
               )}
             </div>
@@ -585,15 +746,9 @@ export default function HostedArenaClient({
 
             {latestRound && (
               <span
-                className={`${styles.roundStatus} ${
-                  latestRound.round.status === "completed"
-                    ? styles.statusSuccess
-                    : latestRound.round.status === "failed"
-                      ? styles.statusDanger
-                      : latestRound.round.status === "retryable"
-                        ? styles.statusWarning
-                        : styles.statusNeutral
-                }`}
+                className={`${styles.roundStatus} ${roundStatusClass(
+                  latestRound.round.status,
+                )}`}
               >
                 {formatRoundStatus(latestRound.round.status)}
               </span>
@@ -741,17 +896,143 @@ export default function HostedArenaClient({
                 <button
                   type="button"
                   className={styles.clearResult}
-                  onClick={() => {
-                    if (!hasPendingRequest) {
-                      setLatestRound(null);
-                      setError("");
-                    }
-                  }}
-                  disabled={hasPendingRequest}
+                  onClick={clearDisplayedResult}
+                  disabled={submitting || hasPendingRequest}
                 >
-                  Clear result
+                  Clear displayed result
                 </button>
               </div>
+            </div>
+          )}
+        </section>
+
+        <section className={styles.battle}>
+          <div className={styles.battleHeading}>
+            <div>
+              <p className={styles.eyebrow}>SAVED ROUNDS</p>
+              <h2>Round history</h2>
+            </div>
+
+            <span className={styles.sectionMeta}>
+              {roundHistory.length} / 60 STORED ROUNDS
+            </span>
+          </div>
+
+          {historyLoading && (
+            <div className={styles.loadingPanel} role="status">
+              <span className={styles.loadingSignal} />
+
+              <div>
+                <strong>Loading your history</strong>
+                <p>Retrieving rounds linked to your entitlement.</p>
+              </div>
+            </div>
+          )}
+
+          {historyError && (
+            <div className={styles.errorBox} role="alert">
+              <strong>History unavailable</strong>
+              <p>{historyError}</p>
+            </div>
+          )}
+
+          {!historyLoading &&
+            !historyError &&
+            roundHistory.length === 0 && (
+              <div className={styles.emptyPanel}>
+                <h3>No saved rounds yet.</h3>
+                <p>
+                  Your submitted rounds will appear here after
+                  the server records them.
+                </p>
+              </div>
+            )}
+
+          {roundHistory.length > 0 && (
+            <div className={styles.entrantGrid}>
+              {roundHistory.map((entry) => {
+                const completedEntrants =
+                  entry.entrants.filter(
+                    (entrant) =>
+                      entrant.status === "completed",
+                  ).length;
+
+                const canRetry =
+                  entry.round.status === "retryable" &&
+                  Boolean(entry.round.idempotencyKey);
+
+                return (
+                  <article
+                    className={styles.entrantCard}
+                    key={entry.round.id}
+                  >
+                    <header className={styles.entrantHeader}>
+                      <div className={styles.entrantIdentity}>
+                        <span className={styles.entrantMark}>
+                          {completedEntrants}/2
+                        </span>
+
+                        <div>
+                          <h3>
+                            {formatRoundStatus(
+                              entry.round.status,
+                            )}
+                          </h3>
+
+                          <span>
+                            {formatDate(
+                              entry.round.createdAt ??
+                                entry.round.reservedAt,
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`${styles.entrantStatus} ${roundStatusClass(
+                          entry.round.status,
+                        )}`}
+                      >
+                        {entry.round.status.toUpperCase()}
+                      </span>
+                    </header>
+
+                    <div className={styles.entrantBody}>
+                      <span className={styles.responseLabel}>
+                        PROMPT
+                      </span>
+
+                      <p>
+                        {entry.round.prompt.length > 260
+                          ? `${entry.round.prompt.slice(0, 260)}…`
+                          : entry.round.prompt}
+                      </p>
+                    </div>
+
+                    <footer className={styles.entrantFooter}>
+                      <span>
+                        {entry.entrants.length} entrant records
+                      </span>
+
+                      <button
+                        type="button"
+                        className={styles.clearResult}
+                        onClick={() =>
+                          selectHistoryEntry(entry)
+                        }
+                        disabled={
+                          submitting ||
+                          hasPendingRequest
+                        }
+                      >
+                        {canRetry
+                          ? "View / retry →"
+                          : "View round →"}
+                      </button>
+                    </footer>
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>
