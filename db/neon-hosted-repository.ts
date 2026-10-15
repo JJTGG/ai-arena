@@ -1,4 +1,3 @@
-
 import "server-only";
 
 import { Client } from "@neondatabase/serverless";
@@ -1029,6 +1028,41 @@ export class NeonHostedRepository
     );
 
     return rows[0] ? mapRound(rows[0]) : null;
+  }
+
+  async listRoundsForEntitlement(
+    entitlementId: string,
+    limit: number,
+  ): Promise<HostedRound[]> {
+    const safeLimit = Number.isFinite(limit)
+      ? Math.min(60, Math.max(1, Math.floor(limit)))
+      : 20;
+
+    const rows = await this.query<RoundRow>(
+      `
+        SELECT
+          id,
+          entitlement_id,
+          idempotency_key,
+          prompt,
+          usage_date,
+          status,
+          reserved_at,
+          started_at,
+          completed_at,
+          released_at,
+          failure_code,
+          created_at,
+          updated_at
+        FROM hosted_rounds
+        WHERE entitlement_id = $1
+        ORDER BY created_at DESC, id DESC
+        LIMIT $2
+      `,
+      [entitlementId, safeLimit],
+    );
+
+    return rows.map(mapRound);
   }
 
   async createRound(
