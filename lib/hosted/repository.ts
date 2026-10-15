@@ -94,6 +94,11 @@ export interface HostedRepository {
     options?: HostedRepositoryQueryOptions,
   ): Promise<HostedRound | null>;
 
+  listRoundsForEntitlement(
+    entitlementId: string,
+    limit: number,
+  ): Promise<HostedRound[]>;
+
   createRound(
     round: HostedRound,
   ): Promise<HostedRound>;
