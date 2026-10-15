@@ -47,33 +47,115 @@ function formatRound(round: number) {
   return String(round).padStart(2, "0");
 }
 
-function getFailureMessage(error: unknown) {
-  const message =
+function redactFailureDetails(value: string): string {
+  return value
+    .replace(
+      /\bAIza[0-9A-Za-z_-]{20,}\b/g,
+      "[redacted API key]",
+    )
+    .replace(
+      /\bsk-[A-Za-z0-9_-]{16,}\b/g,
+      "[redacted API key]",
+    )
+    .replace(
+      /(Bearer\s+)[A-Za-z0-9._~+/-]+/gi,
+      "$1[redacted]",
+    );
+}
+
+function isErrorRecord(
+  value: unknown,
+): value is Record<string, unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value)
+  );
+}
+
+function getFailureMessage(error: unknown): string {
+  const rawMessage =
     error instanceof Error
-      ? error.message.toLowerCase()
-      : "";
+      ? error.message.trim()
+      : typeof error === "string"
+        ? error.trim()
+        : "";
 
-  if (
-    message.includes("401") ||
-    message.includes("403") ||
-    message.includes("unauthorized") ||
-    message.includes("api key")
-  ) {
-    return "The API key was rejected.";
+  if (!rawMessage) {
+    return "No diagnostic details were available from the provider.";
   }
 
+  const normalizedMessage = rawMessage.toLowerCase();
+
   if (
-    message.includes("429") ||
-    message.includes("quota") ||
-    message.includes("rate limit") ||
-    message.includes("rate_limit") ||
-    message.includes("credit") ||
-    message.includes("insufficient")
+    normalizedMessage.includes("provider_timeout") ||
+    normalizedMessage.includes("timed out")
   ) {
-    return "The provider reported a quota or available-credit issue.";
+    return redactFailureDetails(rawMessage).slice(0, 400);
   }
 
-  return "The provider could not complete this round.";
+  const httpMatch = rawMessage.match(
+    /^(OpenAI|Google) HTTP (\d{3}):\s*([\s\S]*)$/i,
+  );
+
+  if (httpMatch) {
+    const provider = /^Google$/i.test(httpMatch[1])
+      ? "Gemini"
+      : "OpenAI";
+
+    const status = httpMatch[2];
+    const responseBody = httpMatch[3].trim();
+
+    let providerCode = "";
+    let providerMessage = "";
+
+    try {
+      const parsed: unknown = JSON.parse(responseBody);
+
+      if (isErrorRecord(parsed)) {
+        const details = isErrorRecord(parsed.error)
+          ? parsed.error
+          : parsed;
+
+        const codeCandidate =
+          details.status ??
+          details.type ??
+          details.code;
+
+        if (
+          typeof codeCandidate === "string" ||
+          typeof codeCandidate === "number"
+        ) {
+          providerCode = String(codeCandidate);
+        }
+
+        if (typeof details.message === "string") {
+          providerMessage = details.message;
+        } else if (typeof parsed.message === "string") {
+          providerMessage = parsed.message;
+        }
+      }
+    } catch {
+      // The provider may return plain text instead of JSON.
+    }
+
+    const codeSuffix =
+      providerCode &&
+      providerCode !== status
+        ? ` (${providerCode})`
+        : "";
+
+    const detail =
+      providerMessage ||
+      responseBody ||
+      "The provider returned no readable error message.";
+
+    return redactFailureDetails(
+      `${provider} returned HTTP ${status}${codeSuffix}: ${detail}`,
+    ).slice(0, 400);
+  }
+
+  return redactFailureDetails(rawMessage).slice(0, 400);
 }
 
 export default function Home() {
