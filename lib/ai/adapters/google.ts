@@ -1,9 +1,6 @@
-
 import type { AIProviderAdapter } from "../provider";
 import type { AIRequest, AIResponse } from "../types";
-import {
-  fetchWithProviderTimeout,
-} from "../../hosted/provider-utils";
+import { fetchWithProviderTimeout } from "../../hosted/provider-utils";
 
 const GOOGLE_MODEL = "gemini-3.6-flash";
 
@@ -83,8 +80,13 @@ export const googleAdapter: AIProviderAdapter = {
         );
       }
 
+      const detail =
+        error instanceof Error
+          ? error.message
+          : "Unknown network error.";
+
       throw new Error(
-        "Google request could not be completed. Check your connection and try again.",
+        `Google network request failed: ${detail}`,
       );
     }
 
@@ -92,7 +94,9 @@ export const googleAdapter: AIProviderAdapter = {
 
     if (!response.ok) {
       throw new Error(
-        `Google request failed: ${responseText || `HTTP ${response.status}`}`,
+        `Google HTTP ${response.status}: ${
+          responseText || "No response body."
+        }`,
       );
     }
 
