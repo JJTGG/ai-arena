@@ -5,6 +5,7 @@ import { getHostedAuthContext } from "@/lib/hosted/better-auth-session";
 import { getHostedProviderRegistry } from "@/lib/hosted/provider-registry";
 import { reserveHostedRound } from "@/lib/hosted/round-reservation-service";
 import { executeHostedRoundLifecycle } from "@/lib/hosted/round-execution";
+import { recoverStaleHostedRound } from "@/lib/hosted/stale-round-recovery";
 import { resolveHostedSession } from "@/lib/hosted/session-service";
 import {
   getDailyRoundsRemaining,
@@ -154,13 +155,27 @@ export async function POST(request: Request) {
       | null = null;
 
     /*
-     * Execute newly reserved rounds and retryable rounds.
-     * Existing completed rounds are returned without re-execution.
+     * A POST using the original key can recheck a running round.
+     * Stale recovery only changes persistent state; it does not
+     * call providers. The next user action can retry that round.
      */
-    if (
+    const isRunningStatusCheck =
+      reservation.round.status === "running";
+
+    if (isRunningStatusCheck) {
+      await recoverStaleHostedRound({
+        repository,
+        roundId: reservation.round.id,
+      });
+    } else if (
       reservation.round.status === "reserved" ||
       reservation.round.status === "retryable"
     ) {
+      /*
+       * Execute new reservations and explicit retries. A running
+       * status check never reaches this branch, even if recovery
+       * just changed the round to retryable.
+       */
       execution = await executeHostedRoundLifecycle({
         repository,
         registry,
