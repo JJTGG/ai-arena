@@ -1,12 +1,16 @@
+import Link from "next/link";
+
 import { createNeonHostedRepository } from "@/db/neon-hosted-repository";
 import { getHostedAuthContext } from "@/lib/hosted/better-auth-session";
 import { buildHostedAccessSnapshot } from "@/lib/hosted/access";
 import { getCurrentUsageDate } from "@/lib/hosted/daily-usage";
 import { resolveHostedSession } from "@/lib/hosted/session-service";
+
 import { AgeConfirmation } from "./components/age-confirmation";
 import { HostedAuth } from "./components/hosted-auth";
 import { ResendVerification } from "./components/resend-verification";
 import { HostedCheckout } from "./components/hosted-checkout";
+
 import styles from "./hosted.module.css";
 
 export default async function HostedPage() {
@@ -19,7 +23,9 @@ export default async function HostedPage() {
           <header className={styles.topbar}>
             <div className={styles.brand}>
               <span className={styles.brandMark}>AA</span>
-              <span className={styles.brandText}>HOSTED ARENA</span>
+              <span className={styles.brandText}>
+                HOSTED ARENA
+              </span>
             </div>
 
             <div className={styles.status}>
@@ -30,11 +36,18 @@ export default async function HostedPage() {
 
           <section className={styles.authSection}>
             <div className={styles.hero}>
-              <p className={styles.eyebrow}>HOSTED // ACCESS SYSTEM</p>
-              <h1 className={styles.title}>Enter the arena.</h1>
+              <p className={styles.eyebrow}>
+                HOSTED // ACCESS SYSTEM
+              </p>
+
+              <h1 className={styles.title}>
+                Enter the arena.
+              </h1>
+
               <p className={styles.lead}>
-                Hosted Arena gives you a ready-to-use AI battle environment
-                without requiring your own provider keys.
+                Hosted Arena gives you a ready-to-use AI
+                battle environment without requiring your
+                own provider keys.
               </p>
             </div>
 
@@ -54,12 +67,15 @@ export default async function HostedPage() {
     authContext,
   });
 
-  const entitlement = await repository.getActiveEntitlement(account.id);
+  const entitlement =
+    await repository.getActiveEntitlement(account.id);
+
+  const now = new Date();
 
   const dailyUsage = entitlement
     ? await repository.getDailyUsage(
         entitlement.id,
-        getCurrentUsageDate(new Date()),
+        getCurrentUsageDate(now),
       )
     : null;
 
@@ -67,6 +83,7 @@ export default async function HostedPage() {
     account,
     entitlement,
     dailyUsage,
+    now,
   });
 
   const emailVerified = Boolean(account.emailVerifiedAt);
@@ -87,7 +104,7 @@ export default async function HostedPage() {
   } else if (access.activeEntitlement) {
     stateTitle = "ARENA ACCESS ACTIVE";
     stateCopy =
-      "Your Hosted Arena access is active. The battle surface is ready for the next stage.";
+      "Your entitlement is active. Enter Hosted Arena to submit prompts and view both entrant results.";
   } else if (access.checkoutAvailable) {
     stateTitle = "HOSTED ACCESS READY";
     stateCopy =
@@ -100,7 +117,9 @@ export default async function HostedPage() {
         <header className={styles.topbar}>
           <div className={styles.brand}>
             <span className={styles.brandMark}>AA</span>
-            <span className={styles.brandText}>HOSTED ARENA</span>
+            <span className={styles.brandText}>
+              HOSTED ARENA
+            </span>
           </div>
 
           <div className={styles.status}>
@@ -110,22 +129,32 @@ export default async function HostedPage() {
         </header>
 
         <section className={styles.hero}>
-          <p className={styles.eyebrow}>HOSTED // ACCESS SYSTEM</p>
+          <p className={styles.eyebrow}>
+            HOSTED // ACCESS SYSTEM
+          </p>
 
           <div className={styles.heroRow}>
             <div>
-              <h1 className={styles.title}>Your battle space.</h1>
+              <h1 className={styles.title}>
+                Your battle space.
+              </h1>
 
               <p className={styles.lead}>
-                A managed Arena environment built for repeated AI-versus-AI
-                rounds, without exposing the underlying provider
-                infrastructure.
+                A managed Arena environment built for repeated
+                AI-versus-AI rounds, without exposing the
+                underlying provider infrastructure.
               </p>
             </div>
 
             <div className={styles.accountCard}>
-              <span className={styles.accountLabel}>SIGNED IN AS</span>
-              <strong className={styles.accountEmail}>{account.email}</strong>
+              <span className={styles.accountLabel}>
+                SIGNED IN AS
+              </span>
+
+              <strong className={styles.accountEmail}>
+                {account.email}
+              </strong>
+
               <span className={styles.accountMeta}>
                 {account.status.toUpperCase()}
               </span>
@@ -136,8 +165,13 @@ export default async function HostedPage() {
         <section className={styles.statePanel}>
           <div className={styles.stateHeader}>
             <div>
-              <p className={styles.eyebrow}>CURRENT STATE</p>
-              <h2 className={styles.stateTitle}>{stateTitle}</h2>
+              <p className={styles.eyebrow}>
+                CURRENT STATE
+              </p>
+
+              <h2 className={styles.stateTitle}>
+                {stateTitle}
+              </h2>
             </div>
 
             <span className={styles.stateBadge}>
@@ -149,12 +183,16 @@ export default async function HostedPage() {
             </span>
           </div>
 
-          <p className={styles.stateCopy}>{stateCopy}</p>
+          <p className={styles.stateCopy}>
+            {stateCopy}
+          </p>
 
           <div className={styles.steps}>
             <div
               className={`${styles.step} ${
-                emailVerified ? styles.stepComplete : styles.stepCurrent
+                emailVerified
+                  ? styles.stepComplete
+                  : styles.stepCurrent
               }`}
             >
               <span className={styles.stepNumber}>01</span>
@@ -162,14 +200,18 @@ export default async function HostedPage() {
               <div>
                 <strong>Email verification</strong>
                 <span>
-                  {emailVerified ? "Complete" : "Required before access"}
+                  {emailVerified
+                    ? "Complete"
+                    : "Required before access"}
                 </span>
               </div>
             </div>
 
             <div
               className={`${styles.step} ${
-                ageConfirmed ? styles.stepComplete : styles.stepCurrent
+                ageConfirmed
+                  ? styles.stepComplete
+                  : styles.stepCurrent
               }`}
             >
               <span className={styles.stepNumber}>02</span>
@@ -177,7 +219,9 @@ export default async function HostedPage() {
               <div>
                 <strong>Age confirmation</strong>
                 <span>
-                  {ageConfirmed ? "Complete" : "Required before access"}
+                  {ageConfirmed
+                    ? "Complete"
+                    : "Required before access"}
                 </span>
               </div>
             </div>
@@ -212,8 +256,8 @@ export default async function HostedPage() {
                 <strong>Verification required</strong>
 
                 <p>
-                  Check your inbox for the account verification flow, then
-                  return here to continue.
+                  Check your inbox for the account verification
+                  flow, then return here to continue.
                 </p>
 
                 <ResendVerification email={account.email} />
@@ -229,8 +273,8 @@ export default async function HostedPage() {
                 <strong>Age confirmation required</strong>
 
                 <p>
-                  Email verification is complete. Confirm that you are 18 or
-                  older to continue.
+                  Email verification is complete. Confirm that
+                  you are 18 or older to continue.
                 </p>
 
                 <AgeConfirmation />
@@ -238,34 +282,50 @@ export default async function HostedPage() {
             </div>
           )}
 
-          {access.checkoutAvailable && !access.activeEntitlement && (
-            <div className={styles.offer}>
-              <div>
-                <p className={styles.eyebrow}>HOSTED ACCESS</p>
+          {access.checkoutAvailable &&
+            !access.activeEntitlement && (
+              <div className={styles.offer}>
+                <div>
+                  <p className={styles.eyebrow}>
+                    HOSTED ACCESS
+                  </p>
 
-                <h3>60 rounds · 2 per day · 30 days</h3>
+                  <h3>60 rounds · 2 per day · 30 days</h3>
 
-                <p>
-                  Two AI entrants compete in each round. The hosted service
-                  handles the provider side of the battle.
-                </p>
+                  <p>
+                    Two AI entrants compete in each round.
+                    The hosted service handles the provider
+                    side of the battle.
+                  </p>
+                </div>
+
+                <div className={styles.offerBadge}>
+                  READY
+                </div>
+
+                <HostedCheckout />
               </div>
-
-              <div className={styles.offerBadge}>READY</div>
-              <HostedCheckout />
-            </div>
-          )}
+            )}
 
           {access.activeEntitlement && (
             <div className={styles.arenaPanel}>
-              <p className={styles.eyebrow}>BATTLE SYSTEM</p>
+              <p className={styles.eyebrow}>
+                BATTLE SYSTEM
+              </p>
 
-              <h3>Hosted access is active.</h3>
+              <h3>Hosted Arena is active.</h3>
 
               <p>
-                The entitlement layer is live. The next surface is the actual
-                round launcher and battle result interface.
+                Submit a prompt, receive both hosted entrant
+                results, and track your remaining allowance.
               </p>
+
+              <Link
+                href="/hosted/arena"
+                className={styles.nextMoveAction}
+              >
+                Enter Hosted Arena →
+              </Link>
             </div>
           )}
         </section>
@@ -273,22 +333,30 @@ export default async function HostedPage() {
         <section className={styles.metrics}>
           <div className={styles.metric}>
             <span className={styles.metricValue}>60</span>
-            <span className={styles.metricLabel}>TOTAL ROUNDS</span>
+            <span className={styles.metricLabel}>
+              TOTAL ROUNDS
+            </span>
           </div>
 
           <div className={styles.metric}>
             <span className={styles.metricValue}>2</span>
-            <span className={styles.metricLabel}>ROUNDS / DAY</span>
+            <span className={styles.metricLabel}>
+              ROUNDS / DAY
+            </span>
           </div>
 
           <div className={styles.metric}>
             <span className={styles.metricValue}>30</span>
-            <span className={styles.metricLabel}>DAY WINDOW</span>
+            <span className={styles.metricLabel}>
+              DAY WINDOW
+            </span>
           </div>
 
           <div className={styles.metric}>
             <span className={styles.metricValue}>2</span>
-            <span className={styles.metricLabel}>AI ENTRANTS</span>
+            <span className={styles.metricLabel}>
+              AI ENTRANTS
+            </span>
           </div>
         </section>
 
