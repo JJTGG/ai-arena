@@ -1,12 +1,18 @@
-
 import { NextResponse } from "next/server";
 
 import { createNeonHostedRepository } from "@/db/neon-hosted-repository";
 import { getHostedAuthContext } from "@/lib/hosted/better-auth-session";
 import { resolveHostedSession } from "@/lib/hosted/session-service";
-import { isEntitlementActive, getDailyRoundsRemaining, getRoundsRemaining } from "@/lib/hosted/entitlement";
+import {
+  isEntitlementActive,
+  getDailyRoundsRemaining,
+  getRoundsRemaining,
+} from "@/lib/hosted/entitlement";
 import { getDateKeyInTimeZone } from "@/lib/hosted/clock";
-import { HostedError, toHostedError } from "@/lib/hosted/errors";
+import {
+  HostedError,
+  toHostedError,
+} from "@/lib/hosted/errors";
 
 export const runtime = "nodejs";
 
@@ -47,7 +53,8 @@ export async function GET() {
     if (!account.emailVerifiedAt || !account.ageConfirmedAt) {
       throw new HostedError("HOSTED_ELIGIBILITY_REQUIRED", {
         status: 403,
-        message: "Verify your email and confirm your age to view Hosted Arena history.",
+        message:
+          "Verify your email and confirm your age to view Hosted Arena history.",
       });
     }
 
@@ -57,7 +64,8 @@ export async function GET() {
     if (!entitlement) {
       throw new HostedError("ENTITLEMENT_REQUIRED", {
         status: 403,
-        message: "An active Hosted Arena entitlement is required.",
+        message:
+          "An active Hosted Arena entitlement is required.",
       });
     }
 
@@ -66,7 +74,8 @@ export async function GET() {
     if (!isEntitlementActive(entitlement, now)) {
       throw new HostedError("ENTITLEMENT_EXPIRED", {
         status: 403,
-        message: "Your Hosted Arena entitlement is not active.",
+        message:
+          "Your Hosted Arena entitlement is not active.",
       });
     }
 
@@ -84,6 +93,7 @@ export async function GET() {
         return {
           round: {
             id: round.id,
+            idempotencyKey: round.idempotencyKey,
             prompt: round.prompt,
             status: round.status,
             reservedAt: round.reservedAt,
@@ -133,7 +143,8 @@ export async function GET() {
             : entitlement.dailyLimit,
           totalRounds: entitlement.totalRounds,
           dailyLimit: entitlement.dailyLimit,
-          completedRounds: entitlement.completedRounds,
+          completedRounds:
+            entitlement.completedRounds,
         },
       },
       {
