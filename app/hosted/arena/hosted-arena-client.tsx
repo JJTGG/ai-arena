@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -477,13 +476,26 @@ export default function HostedArenaClient({
     setHistoryError("");
 
     if (
-      entry.round.status === "retryable" &&
+      ["reserved", "running", "retryable"].includes(
+        entry.round.status,
+      ) &&
       entry.round.idempotencyKey
     ) {
       setRequestKey(entry.round.idempotencyKey);
-      setError(
-        "This stored round can be retried using its original request identifier.",
-      );
+
+      if (entry.round.status === "running") {
+        setError(
+          "This saved round is still marked as running. Use Check round status to recheck it with the original request identifier.",
+        );
+      } else if (entry.round.status === "reserved") {
+        setError(
+          "This saved round has a reservation but has not started execution. Continue it using the original request identifier.",
+        );
+      } else {
+        setError(
+          "This stored round can be retried using its original request identifier.",
+        );
+      }
     } else {
       setRequestKey(null);
     }
@@ -729,7 +741,11 @@ export default function HostedArenaClient({
               {submitting
                 ? "Running round..."
                 : hasPendingRequest
-                  ? "Retry same round →"
+                  ? latestRound?.round.status === "running"
+                    ? "Check round status →"
+                    : latestRound?.round.status === "reserved"
+                      ? "Continue reserved round →"
+                      : "Retry same round →"
                   : allowanceBlocked
                     ? "Allowance unavailable"
                     : "Enter Arena →"}
@@ -957,9 +973,10 @@ export default function HostedArenaClient({
                       entrant.status === "completed",
                   ).length;
 
-                const canRetry =
-                  entry.round.status === "retryable" &&
-                  Boolean(entry.round.idempotencyKey);
+                const canResume =
+                  ["reserved", "running", "retryable"].includes(
+                    entry.round.status,
+                  ) && Boolean(entry.round.idempotencyKey);
 
                 return (
                   <article
@@ -1025,8 +1042,12 @@ export default function HostedArenaClient({
                           hasPendingRequest
                         }
                       >
-                        {canRetry
-                          ? "View / retry →"
+                        {canResume
+                          ? entry.round.status === "running"
+                            ? "View / check →"
+                            : entry.round.status === "reserved"
+                              ? "View / continue →"
+                              : "View / retry →"
                           : "View round →"}
                       </button>
                     </footer>
