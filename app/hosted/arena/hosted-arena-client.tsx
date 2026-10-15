@@ -1,7 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { useState } from "react";
+import type { KeyboardEvent } from "react";
 
 import styles from "./arena.module.css";
 
@@ -93,7 +95,7 @@ function formatRoundStatus(status: string) {
     completed: "Completed",
     retryable: "Retry available",
     failed: "Failed",
-    released: "Released",
+    released: "Released · allowance returned",
   };
 
   return labels[status] ?? "Status unavailable";
@@ -200,7 +202,7 @@ export default function HostedArenaClient({
     if (
       submitting ||
       !trimmedPrompt ||
-      allowanceBlocked
+      (allowanceBlocked && requestKey === null)
     ) {
       return;
     }
@@ -228,7 +230,7 @@ export default function HostedArenaClient({
         });
       } catch {
         setError(
-          "The connection was interrupted before a result arrived. Retry without changing the prompt to reuse the same request identifier.",
+          "The connection was interrupted before a result arrived. Retry this same request to avoid creating a duplicate round.",
         );
         return;
       }
@@ -240,7 +242,7 @@ export default function HostedArenaClient({
           (await response.json()) as RoundApiResponse;
       } catch {
         setError(
-          `Hosted Arena returned an unreadable response (HTTP ${response.status}). Retry the same prompt if the problem was temporary.`,
+          `Hosted Arena returned an unreadable response (HTTP ${response.status}). Retry this same request if the problem was temporary.`,
         );
         return;
       }
@@ -254,33 +256,68 @@ export default function HostedArenaClient({
           payload.error?.message ??
             `Hosted Arena could not start the round (HTTP ${response.status}).`,
         );
+
+        // Keep the same identifier only when the server says
+        // the operation may be retried.
+        if (
+          response.status < 500 &&
+          !payload.error?.retryable
+        ) {
+          setRequestKey(null);
+        }
+
         return;
       }
 
+      const round = payload.round;
+
       setLatestRound({
-        round: payload.round,
+        round,
         entrants: Array.isArray(payload.entrants)
           ? payload.entrants
           : [],
       });
 
-      if (payload.usage) {
+      const responseUsage = payload.usage;
+
+      if (responseUsage) {
         setUsage((current) => ({
           ...current,
           totalRoundsRemaining:
-            payload.usage!.totalRoundsRemaining,
+            responseUsage.totalRoundsRemaining,
           dailyRoundsRemaining:
-            payload.usage!.dailyRoundsRemaining,
+            responseUsage.dailyRoundsRemaining,
           completedRounds:
-            payload.usage!.completedRounds,
+            responseUsage.completedRounds,
           totalRounds:
-            payload.usage!.totalRounds,
+            responseUsage.totalRounds,
           dailyLimit:
-            payload.usage!.dailyLimit,
+            responseUsage.dailyLimit,
         }));
       }
 
-      setRequestKey(null);
+      if (
+        round.status === "retryable" ||
+        round.status === "running" ||
+        round.status === "reserved"
+      ) {
+        // Continue the existing reservation on the next request.
+        setRequestKey(idempotencyKey);
+
+        if (round.status === "retryable") {
+          setError(
+            "This round has a retryable result. Retry the same round to continue it without creating a new reservation.",
+          );
+        } else {
+          setError(
+            "The server has not reported a terminal result yet. Retry this same request to check the existing round.",
+          );
+        }
+      } else {
+        // Completed and terminally released rounds no longer
+        // need the same request identifier.
+        setRequestKey(null);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -289,13 +326,11 @@ export default function HostedArenaClient({
   function updatePrompt(value: string) {
     setPrompt(value);
     setError("");
-
-    // A changed prompt is a new operation and needs a new key.
     setRequestKey(null);
   }
 
   function handlePromptKeyDown(
-    event: React.KeyboardEvent<HTMLTextAreaElement>,
+    event: KeyboardEvent<HTMLTextAreaElement>,
   ) {
     if (
       event.key === "Enter" &&
@@ -305,6 +340,19 @@ export default function HostedArenaClient({
       void handleRunRound();
     }
   }
+
+  const hasPendingRequest = requestKey !== null;
+
+  const retryLocked =
+    hasPendingRequest && !submitting;
+
+  const showRoundFailure =
+    latestRound !== null &&
+    (
+      latestRound.round.status === "failed" ||
+      latestRound.round.status === "released" ||
+      Boolean(latestRound.round.failureCode)
+    );
 
   return (
     <main className={styles.page}>
@@ -357,10 +405,12 @@ export default function HostedArenaClient({
             <span className={styles.usageLabel}>
               ROUNDS REMAINING
             </span>
+
             <strong className={styles.usageValue}>
               {usage.totalRoundsRemaining}
               <span> / {usage.totalRounds}</span>
             </strong>
+
             <div className={styles.progressTrack}>
               <span
                 className={styles.progressFill}
@@ -384,10 +434,12 @@ export default function HostedArenaClient({
             <span className={styles.usageLabel}>
               DAILY ALLOWANCE
             </span>
+
             <strong className={styles.usageValue}>
               {usage.dailyRoundsRemaining}
               <span> / {usage.dailyLimit}</span>
             </strong>
+
             <p className={styles.usageNote}>
               Available today
             </p>
@@ -397,10 +449,12 @@ export default function HostedArenaClient({
             <span className={styles.usageLabel}>
               COMPLETED
             </span>
+
             <strong className={styles.usageValue}>
               {usage.completedRounds}
               <span> rounds</span>
             </strong>
+
             <p className={styles.usageNote}>
               Recorded by Hosted Arena
             </p>
@@ -410,9 +464,11 @@ export default function HostedArenaClient({
             <span className={styles.usageLabel}>
               ACCESS ENDS
             </span>
+
             <strong className={styles.expiryValue}>
               {formatDate(usage.expiresAt)}
             </strong>
+
             <p className={styles.usageNote}>
               Current entitlement
             </p>
@@ -449,7 +505,7 @@ export default function HostedArenaClient({
             placeholder="Give both entrants the same task..."
             maxLength={20_000}
             rows={7}
-            disabled={submitting}
+            disabled={submitting || hasPendingRequest}
           />
 
           <div className={styles.composerFooter}>
@@ -462,7 +518,15 @@ export default function HostedArenaClient({
             </span>
           </div>
 
-          {allowanceBlocked && (
+          {retryLocked && (
+            <p className={styles.allowanceMessage} role="status">
+              The prompt is locked to this request until the
+              server returns a terminal result. Retry the same
+              round rather than starting another reservation.
+            </p>
+          )}
+
+          {allowanceBlocked && !hasPendingRequest && (
             <p className={styles.allowanceMessage} role="status">
               {noRoundsRemaining
                 ? "Your total round allowance has been used."
@@ -472,12 +536,16 @@ export default function HostedArenaClient({
 
           {error && (
             <div className={styles.errorBox} role="alert">
-              <strong>Round request issue</strong>
+              <strong>Round request update</strong>
               <p>{error}</p>
-              <span>
-                Your prompt and request identifier are preserved
-                so you can retry the same operation.
-              </span>
+
+              {hasPendingRequest && (
+                <span>
+                  The same request identifier is preserved.
+                  Retrying will not create a second reservation
+                  for this prompt.
+                </span>
+              )}
             </div>
           )}
 
@@ -494,12 +562,12 @@ export default function HostedArenaClient({
               disabled={
                 submitting ||
                 !trimmedPrompt ||
-                allowanceBlocked
+                (allowanceBlocked && !hasPendingRequest)
               }
             >
               {submitting
                 ? "Running round..."
-                : requestKey
+                : hasPendingRequest
                   ? "Retry same round →"
                   : allowanceBlocked
                     ? "Allowance unavailable"
@@ -522,7 +590,9 @@ export default function HostedArenaClient({
                     ? styles.statusSuccess
                     : latestRound.round.status === "failed"
                       ? styles.statusDanger
-                      : styles.statusNeutral
+                      : latestRound.round.status === "retryable"
+                        ? styles.statusWarning
+                        : styles.statusNeutral
                 }`}
               >
                 {formatRoundStatus(latestRound.round.status)}
@@ -548,11 +618,12 @@ export default function HostedArenaClient({
             <div className={styles.emptyPanel}>
               <span className={styles.emptyMark}>AA</span>
               <h3>Your next round starts here.</h3>
+
               <p>
                 Submit one prompt to receive results from both
                 hosted entrants. Responses are shown independently,
-                so one entrant&apos;s failure does not hide the other
-                entrant&apos;s result.
+                so one entrant&apos;s failure does not hide the
+                other entrant&apos;s result.
               </p>
             </div>
           )}
@@ -564,7 +635,7 @@ export default function HostedArenaClient({
                 <p>{latestRound.round.prompt}</p>
               </div>
 
-              {latestRound.round.status === "failed" && (
+              {showRoundFailure && (
                 <div className={styles.roundFailure}>
                   {getFailureMessage(
                     latestRound.round.failureCode,
@@ -617,6 +688,7 @@ export default function HostedArenaClient({
                           <span className={styles.responseLabel}>
                             RESPONSE
                           </span>
+
                           <p>{entrant.response}</p>
                         </div>
                       ) : (
@@ -624,6 +696,7 @@ export default function HostedArenaClient({
                           <span className={styles.responseLabel}>
                             RESULT
                           </span>
+
                           <p>
                             {entrant.status === "completed"
                               ? "The entrant completed, but no response text was returned."
@@ -668,7 +741,13 @@ export default function HostedArenaClient({
                 <button
                   type="button"
                   className={styles.clearResult}
-                  onClick={() => setLatestRound(null)}
+                  onClick={() => {
+                    if (!hasPendingRequest) {
+                      setLatestRound(null);
+                      setError("");
+                    }
+                  }}
+                  disabled={hasPendingRequest}
                 >
                   Clear result
                 </button>
