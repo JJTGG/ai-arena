@@ -1,9 +1,6 @@
-
 import type { AIProviderAdapter } from "../provider";
 import type { AIRequest, AIResponse } from "../types";
-import {
-  fetchWithProviderTimeout,
-} from "../../hosted/provider-utils";
+import { fetchWithProviderTimeout } from "../../hosted/provider-utils";
 
 const OPENAI_MODEL = "gpt-5.6-luna";
 
@@ -56,8 +53,13 @@ export const openAIAdapter: AIProviderAdapter = {
         );
       }
 
+      const detail =
+        error instanceof Error
+          ? error.message
+          : "Unknown network error.";
+
       throw new Error(
-        "OpenAI request could not be completed. Check your connection and try again.",
+        `OpenAI network request failed: ${detail}`,
       );
     }
 
@@ -65,7 +67,9 @@ export const openAIAdapter: AIProviderAdapter = {
 
     if (!response.ok) {
       throw new Error(
-        `OpenAI request failed: ${responseText || `HTTP ${response.status}`}`,
+        `OpenAI HTTP ${response.status}: ${
+          responseText || "No response body."
+        }`,
       );
     }
 
